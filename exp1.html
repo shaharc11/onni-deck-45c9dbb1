@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>onni — The Supplement Lifecycle (preview)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="fonts-embed.css">
+<style>
+  :root{
+    --cream:#FCFAF5; --paper:#FEFDF9; --wheat:#DFD8C9; --line:#E4DDCE;
+    --ink:#1A1A17; --slate:#6E6A60; --salmon:#FA8A72; --salmon-deep:#F0765C;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{background:#FCFAF5; font-family:"Hanken Grotesk",system-ui,sans-serif; color:var(--ink); overflow:hidden; display:flex; align-items:center; justify-content:center;}
+  .frame{width:1280px; height:720px; background:var(--cream); position:relative; box-shadow:none; overflow:hidden; transform-origin:center center; display:flex; flex-direction:column; padding:64px 70px;}
+  .eyebrow{font-family:"JetBrains Mono",monospace; text-transform:uppercase; font-size:11px; font-weight:500; letter-spacing:.16em; color:#F0765C;}
+  h1{font-size:40px; font-weight:700; line-height:1.05; letter-spacing:-.02em; margin-top:12px;}
+  h1 .dot{color:var(--salmon);}
+  .sub{font-size:17px; color:var(--slate); font-weight:600; margin-top:10px;}
+
+  .journey{flex:1; display:flex; align-items:center; justify-content:space-between; position:relative; margin-top:20px;}
+  /* the connecting line */
+  .journey::before{content:""; position:absolute; left:4%; right:4%; top:96px; height:2px; background:var(--wheat); z-index:0;}
+
+  .node{position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; width:150px; text-align:center;}
+  .disc{width:78px; height:78px; border-radius:50%; background:var(--paper); border:2px solid var(--line); display:flex; align-items:center; justify-content:center; box-shadow:0 6px 16px rgba(60,50,35,.08);}
+  .disc svg{width:38px; height:38px;}
+  .node.persona .disc{background:var(--ink); border-color:var(--ink);}
+  .node.persona .disc span{font-size:30px; font-weight:800; color:#fff;}
+  .step-n{position:absolute; top:-6px; right:34px; font-family:"JetBrains Mono",monospace; font-size:12px; font-weight:700; color:var(--slate);}
+  .label{font-size:18px; font-weight:800; letter-spacing:-.01em; margin-top:20px;}
+  .cap{font-size:13px; color:var(--slate); margin-top:6px; line-height:1.35;}
+  .node.final .label{color:var(--salmon-deep);}
+
+  .foot{font-size:15px; color:var(--slate); text-align:center; margin-top:14px; line-height:1.4;}
+  .foot b{color:var(--ink); font-weight:700;}
+</style>
+</head>
+<body>
+<div class="frame" id="frame"><div style="position:absolute;right:48px;bottom:16px;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#A9A69B;z-index:90">onni · Confidential · 06</div>
+  <div style="margin:0 0 12px;position:relative;z-index:8"><svg width="62" viewBox="0 0 346 142" fill="none" style="display:block"><g stroke="#1A1A17" stroke-width="8" stroke-linecap="round" fill="none"><circle cx="51" cy="85" r="47"/><path d="M135 132 L135 72.5 A34.5 34.5 0 0 1 204 72.5 L204 132"/><path d="M236 132 L236 72.5 A34.5 34.5 0 0 1 305 72.5 L305 132"/><path d="M338 132 L338 38"/></g><circle cx="338" cy="18" r="7" fill="#FA8A72"/></svg></div><div class="eyebrow">Principle 2 — Experience</div>
+  <h1>Supplement Lifecycle Today<span class="dot">.</span></h1>
+
+  <div class="journey">
+    <div class="node persona">
+      <div class="disc"><span>M</span></div>
+      <div class="label">Maya</div>
+      <div class="cap">decides to take her health seriously</div>
+    </div>
+
+    <div class="node">
+      <span class="step-n">01</span>
+      <div class="disc">
+        <svg viewBox="0 0 40 40" fill="none" stroke="#4A463E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 13h22l-2 18a2.5 2.5 0 0 1-2.5 2.2H13.5A2.5 2.5 0 0 1 11 31L9 13z"/>
+          <path d="M15 13v-2a5 5 0 0 1 10 0v2"/>
+        </svg>
+      </div>
+      <div class="label">Orders</div>
+      <div class="cap">across several brands</div>
+    </div>
+
+    <div class="node">
+      <span class="step-n">02</span>
+      <div class="disc">
+        <svg viewBox="0 0 40 40" fill="none" stroke="#4A463E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="8" y="14" width="24" height="12" rx="6" transform="rotate(-45 20 20)"/>
+          <line x1="15.76" y1="15.76" x2="24.24" y2="24.24"/>
+        </svg>
+      </div>
+      <div class="label">Takes</div>
+      <div class="cap">every day, on her own</div>
+    </div>
+
+    <div class="node">
+      <span class="step-n">03</span>
+      <div class="disc">
+        <svg viewBox="0 0 40 40" fill="none" stroke="#4A463E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="20" cy="20" r="12"/>
+          <path d="M20 13v7l5 3"/>
+        </svg>
+      </div>
+      <div class="label">Forgets</div>
+      <div class="cap">skips it for weeks</div>
+    </div>
+
+    <div class="node">
+      <span class="step-n">04</span>
+      <div class="disc">
+        <svg viewBox="0 0 40 40" fill="none" stroke="#4A463E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M13 15a7 7 0 0 1 14 0c0 8 3 10 3 10H10s3-2 3-10z"/>
+          <path d="M17.5 29a2.5 2.5 0 0 0 5 0"/>
+        </svg>
+      </div>
+      <div class="label">Subscriptions</div>
+      <div class="cap">keep auto-shipping</div>
+    </div>
+
+    <div class="node final">
+      <span class="step-n">05</span>
+      <div class="disc">
+        <svg viewBox="0 0 40 40" fill="none" stroke="#4A463E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="20" cy="20" r="12"/>
+          <path d="M13 13l14 14"/>
+        </svg>
+      </div>
+      <div class="label">Cancels</div>
+      <div class="cap">overstocked, brand by brand</div>
+    </div>
+  </div>
+
+  <div class="foot">Now let us show you how this experience <b>actually looks</b> &mdash; and why we believe it can look very different with us.</div>
+</div>
+<script>
+  const frame = document.getElementById('frame');
+  function fit(){ const s = Math.min(window.innerWidth/1280, window.innerHeight/720); frame.style.transform = 'scale(' + s + ')'; }
+  window.addEventListener('resize', fit); fit();
+</script>
+
+<script>
+  document.addEventListener('click', function(){ if(parent&&parent.__deckNext) parent.__deckNext(); });
+  document.addEventListener('keydown', function(e){
+    if(e.key==='ArrowRight'||e.key===' '||e.key==='Enter'){ e.preventDefault(); parent.__deckNext&&parent.__deckNext(); }
+    else if(e.key==='ArrowLeft'||e.key==='Backspace'){ e.preventDefault(); parent.__deckPrev&&parent.__deckPrev(); }
+  });
+  window.__max=0; window.__next=function(){return false}; window.__prev=function(){return false}; window.__goto=function(){};
+</script>
+</body>
+</html>

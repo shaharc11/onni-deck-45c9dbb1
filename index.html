@@ -1,0 +1,896 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>onni &lt;&gt; Maveron — Working Session</title>
+<link rel="stylesheet" href="fonts-embed.css">
+<style>
+:root{
+  /* v5 Unified — onni tokens */
+  --cream:#FCFAF5; --canvas:#F3F0E8; --card:#FFFFFF; --card-warm:#FBF9F3;
+  --ink:#1A1A17; --ink-soft:#6E6C63; --ink-faint:#A9A69B;
+  --hair:rgba(26,26,23,.10); --hair-2:rgba(26,26,23,.06);
+  --salmon:#FA8A72; --salmon-2:#F0765C; --salmon-soft:rgba(250,138,114,.15);
+  --lime:#C4E43F; --slate:#585D66; --sage:#7E9A6B;
+  --shadow:0 1px 2px rgba(26,26,23,.04), 0 18px 40px -24px rgba(26,26,23,.22);
+  --shadow-sm:0 1px 2px rgba(26,26,23,.05), 0 8px 22px -16px rgba(26,26,23,.18);
+  --dark-ticket:linear-gradient(155deg,#2b2b26 0%,#1a1a16 55%,#0f0f0d 100%);
+  --r-hero:30px; --r-card:22px; --r-inset:14px; --r-pill:999px;
+  --wm-ink:#1A1A17; --wm-dot:var(--salmon);
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sans:'Hanken Grotesk',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  font-family:var(--sans); background:#1c1b18; color:var(--ink);
+  overflow:hidden; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+}
+/* ===== stage / scaling ===== */
+#viewport{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(120% 120% at 50% 0%,#26241f 0%,#141310 70%);}
+#stage{width:1280px;height:720px;position:relative;transform-origin:center center;box-shadow:0 40px 120px -30px rgba(0,0,0,.7);border-radius:8px;overflow:hidden;background:var(--cream)}
+.slide{position:absolute;inset:0;padding:52px 64px 40px;background:var(--cream);opacity:0;visibility:hidden;transition:opacity .45s ease;display:flex;flex-direction:column}
+.slide.active{opacity:1;visibility:visible;z-index:2}
+.slide.dark{background:#141310;color:#F4F2EC;--wm-ink:#F4F2EC;--ink:#F4F2EC;--ink-soft:rgba(244,242,236,.62);--ink-faint:rgba(244,242,236,.4);--hair:rgba(244,242,236,.12);--card:#1e1d19;--card-warm:#1e1d19}
+
+/* ===== brand bar / footer ===== */
+.brandbar{position:absolute;top:44px;left:64px;z-index:5}
+.onni{display:inline-block;line-height:0}
+.onni .st{fill:none;stroke:var(--wm-ink);stroke-width:8;stroke-linecap:round;stroke-linejoin:round}
+.onni .dt{fill:var(--wm-dot)}
+.foot{position:absolute;left:64px;right:64px;bottom:26px;display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);z-index:5}
+.foot .pg{font-variant-numeric:tabular-nums}
+
+/* ===== type helpers ===== */
+.k{font-family:var(--mono);font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--salmon);font-weight:500;margin:0}
+.k.muted{color:var(--ink-faint)}
+h1.title{font-weight:700;font-size:33px;line-height:1.12;letter-spacing:-.02em;margin:10px 0 0;max-width:1000px}
+.accent{color:var(--salmon)}
+.head{margin-top:6px}
+.head h1.title{margin-top:12px}
+
+/* ===== components ===== */
+.card{background:var(--card);border:1px solid var(--hair);border-radius:var(--r-card);box-shadow:var(--shadow-sm)}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border-radius:var(--r-pill);font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:500}
+.pill.salmon{background:var(--salmon-soft);color:var(--salmon-2)}
+.pill.dark{background:var(--ink);color:var(--cream)}
+.pill.ghost{border:1px solid var(--hair);color:var(--ink-soft)}
+.num-badge{width:46px;height:46px;border-radius:50%;background:var(--salmon-soft);color:var(--salmon-2);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:500;font-size:14px;flex:0 0 auto}
+.content{flex:1;min-height:0;display:flex;flex-direction:column}
+
+/* build reveal — uses `translate` so elements' own transforms are preserved */
+.build{opacity:0;translate:0 16px;transition:opacity .5s cubic-bezier(.22,.61,.36,1),translate .5s cubic-bezier(.22,.61,.36,1)}
+.build.in{opacity:1;translate:0 0}
+
+/* decorative concentric rings */
+.rings{position:absolute;pointer-events:none}
+
+/* progress bar */
+#progress{position:fixed;left:0;bottom:0;height:3px;background:var(--salmon);width:0;z-index:50;transition:width .4s ease;box-shadow:0 0 12px rgba(250,138,114,.6)}
+#hint{position:fixed;right:16px;bottom:14px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:rgba(255,255,255,.4);z-index:50;text-transform:uppercase;transition:opacity .6s ease}
+
+/* ---------- utility layout ---------- */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.row{display:flex}
+.spread{justify-content:space-between}
+.mono-lab{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--salmon);font-weight:500}
+.soft{color:var(--ink-soft)}
+.faint{color:var(--ink-faint)}
+.tnum{font-variant-numeric:tabular-nums}
+
+/* S1 title */
+.s1-title{font-weight:800;font-size:74px;letter-spacing:-.03em;line-height:1;display:flex;align-items:center;gap:20px}
+.s1-title .lt{color:var(--salmon);font-weight:700}
+
+/* check card */
+.checkcard{display:flex;align-items:center;gap:22px;padding:30px 34px}
+.checkcard .ck{width:56px;height:56px;border-radius:50%;background:var(--salmon-soft);display:flex;align-items:center;justify-content:center;color:var(--salmon-2);flex:0 0 auto}
+.checkcard h3{margin:0;font-size:23px;font-weight:700;letter-spacing:-.01em}
+.checkcard p{margin:4px 0 0;color:var(--ink-soft);font-size:15px}
+
+/* logo card (s4) */
+.logocard{padding:20px 22px 22px;display:flex;flex-direction:column;min-height:238px}
+.logocard .lc-logo{flex:1;display:flex;align-items:center;justify-content:center;margin:8px 0 16px;height:92px;overflow:visible}
+.logocard .lc-logo img{max-width:90%;max-height:84px;object-fit:contain}
+.logocard p{margin:0;font-size:13px;line-height:1.45;color:var(--ink-soft)}
+
+.blackbar{background:var(--dark-ticket);color:#fff;border-radius:16px;padding:20px;text-align:center;font-size:21px;font-weight:700;letter-spacing:-.01em}
+
+/* s5 hub */
+.hub{position:relative;flex:1;margin-top:16px}
+.hub .you{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:150px;height:150px;border-radius:50%;border:3px solid var(--salmon);display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:800;color:var(--salmon);letter-spacing:.02em;background:var(--cream);z-index:3}
+.hub-card{position:absolute;width:315px;background:var(--card);border:1px solid var(--hair);border-radius:16px;box-shadow:var(--shadow-sm);padding:15px 18px;z-index:2}
+.hub-card .hc-k{font-family:var(--mono);font-size:10px;letter-spacing:.13em;color:var(--salmon);text-transform:uppercase;margin:0 0 3px}
+.hub-card h4{margin:0 0 5px;font-size:16px;font-weight:700;letter-spacing:-.01em}
+.hub-card p{margin:0;font-size:11.5px;line-height:1.4;color:var(--ink-soft)}
+.spoke{position:absolute;height:1.5px;background:var(--hair);transform-origin:left center;z-index:1}
+
+/* dashed placeholder */
+.placeholder{flex:1;border:1.5px dashed var(--ink-faint);border-radius:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+.placeholder h3{margin:0;font-size:26px;font-weight:700}
+.placeholder p{margin:0;color:var(--ink-soft)}
+
+/* s7 */
+.datacard{padding:20px 22px;display:flex;flex-direction:column}
+.datacard h3{margin:0;font-family:var(--mono);font-size:16px;letter-spacing:.08em;text-transform:uppercase;display:flex;align-items:center;gap:9px}
+.datacard h3::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--ink)}
+.datacard .sub{color:var(--ink-faint);font-size:13.5px;margin:3px 0 13px}
+.datacard ul{list-style:none;padding:0;margin:0 0 13px;display:flex;flex-direction:column;gap:9px}
+.datacard li{font-size:14.5px;line-height:1.45;position:relative;padding-left:16px;color:var(--ink-soft)}
+.datacard li::before{content:"";position:absolute;left:0;top:7px;width:5px;height:5px;border-radius:50%;background:var(--salmon)}
+.datacard li b{color:var(--ink);font-weight:700}
+.socan{border-top:1px solid var(--hair);padding-top:12px;margin-top:auto}
+.socan .lab{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--ink-faint);text-transform:uppercase}
+.socan p{margin:4px 0 12px;font-size:13.5px;color:var(--ink-soft);line-height:1.45}
+.moves{display:block;text-align:center;padding:11px;border-radius:var(--r-pill);font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:500}
+.moves.salmon{background:var(--salmon);color:#fff}
+.moves.dark{background:var(--ink);color:var(--cream)}
+.bigfig{font-size:66px;font-weight:800;color:var(--salmon);letter-spacing:-.03em;line-height:.9}
+.brandgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+.brandgrid .bl{border:1px solid var(--hair);border-radius:12px;height:72px;display:flex;align-items:center;justify-content:center;background:var(--card)}
+.brandgrid .bl img{max-width:84%;max-height:46px;object-fit:contain}
+
+/* s8 AB */
+.abcard{padding:28px 32px;display:flex;flex-direction:column}
+.abcard .letter{font-size:38px;font-weight:800;color:var(--salmon);line-height:1}
+.abcard h3{margin:12px 0 16px;font-size:25px;font-weight:700;letter-spacing:-.01em}
+.abrow{border-top:1px solid var(--hair);padding-top:13px;margin-top:13px}
+.abrow:first-of-type{border-top:none;margin-top:0}
+.abrow .rk{font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;color:var(--salmon);text-transform:uppercase;margin:0 0 5px}
+.abrow p{margin:0;font-size:15px;line-height:1.5;color:var(--ink-soft)}
+.abrow p b{color:var(--ink);font-weight:700}
+
+/* full bleed image */
+.fullimg{position:absolute;inset:0;background:#eae7df}
+.fullimg img{width:100%;height:100%;object-fit:cover}
+
+/* s10 econ */
+.econ-cards{display:grid;grid-template-columns:repeat(9,auto);align-items:center;justify-content:center;gap:4px;margin-top:8px}
+.econ-card{background:var(--card);border:1px solid var(--hair);border-radius:16px;box-shadow:var(--shadow-sm);padding:18px 14px;text-align:center;width:150px;min-height:118px;display:flex;flex-direction:column;justify-content:center}
+.econ-card .ef{font-size:30px;font-weight:800;letter-spacing:-.02em}
+.econ-card.hl .ef{color:var(--salmon)}
+.econ-card .es{font-size:11.5px;color:var(--ink-soft);margin-top:5px;line-height:1.3}
+.econ-card .foot-note{font-family:var(--mono);font-size:8px;color:var(--ink-faint);margin-top:6px;line-height:1.3}
+.times{font-size:22px;color:var(--ink-faint);font-weight:400}
+.eq-row{display:flex;align-items:center;gap:14px;padding:11px 18px;border-radius:14px}
+.eq-row.hl{background:var(--salmon-soft);border:1px solid rgba(250,138,114,.35)}
+.eq-formula{font-family:var(--mono);font-size:14.5px;color:var(--ink-soft);flex:1;line-height:1.55}
+.eq-formula b{color:var(--ink);font-weight:700}
+.eq-eq{font-family:var(--mono);color:var(--salmon);font-weight:600;font-size:18px}
+.eq-res{font-size:30px;font-weight:800;letter-spacing:-.02em;width:110px;text-align:right}
+.eq-row.hl .eq-res{color:var(--salmon)}
+.eq-subs{font-family:var(--mono);font-size:13px;color:var(--ink-faint);width:104px;text-align:right}
+
+/* s11 mass market cards */
+.mmcard{padding:22px 22px 20px;display:flex;flex-direction:column}
+.mmcard .mk{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--salmon);text-transform:uppercase;margin:0 0 10px}
+.mmcard h3{margin:0 0 14px;font-size:16px;font-weight:700;line-height:1.3;letter-spacing:-.01em}
+.mmshot{margin-top:auto;border-radius:12px;overflow:hidden;border:1px solid var(--hair);background:var(--card-warm);position:relative;height:214px}
+.mmshot img{width:100%;height:100%;object-fit:cover;object-position:top}
+.mmshot.stack img{position:absolute;width:86%;height:auto;border-radius:8px;box-shadow:0 8px 24px -10px rgba(0,0,0,.4);border:1px solid var(--hair)}
+.mmshot .a{top:12px;left:8px} .mmshot .b{bottom:12px;right:8px}
+
+/* s12 pricing */
+.pricecol{padding:20px 22px 20px;display:flex;flex-direction:column}
+.pricecol .pc-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px}
+.pricecol .pc-name{font-size:22px;font-weight:800;letter-spacing:-.01em}
+.pricecol .pc-price{font-family:var(--mono);font-size:19px;font-weight:600}
+.pricecol .pc-adv{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:14px}
+.pline{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-top:1px solid var(--hair)}
+.pline .pl-l b{font-size:13px;font-weight:700;display:block}
+.pline .pl-l span{font-size:11px;color:var(--ink-soft);display:block;margin-top:2px}
+.pline .pl-r{font-family:var(--mono);font-size:12px;color:var(--salmon-2);white-space:nowrap;font-weight:500}
+.psum{margin-top:auto;background:var(--salmon-soft);border-radius:12px;padding:12px 14px}
+.pline:last-of-type{margin-bottom:12px}
+.psum .lab{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--salmon-2)}
+.psum .big{font-size:22px;font-weight:800;color:var(--salmon-2);margin-top:2px}
+.psum .note{font-size:11px;color:var(--ink-soft);margin-left:6px;font-weight:500}
+.pricecol.us{background:var(--salmon);color:#fff;border:none}
+.pricecol.us .pc-adv,.pricecol.us .pl-l span{color:rgba(255,255,255,.8)}
+.pricecol.us .pline{border-top-color:rgba(255,255,255,.22)}
+.pricecol.us .pl-r{color:#fff}
+.pricecol.us .psum{background:rgba(255,255,255,.16)}
+.pricecol.us .psum .lab,.pricecol.us .psum .big{color:#fff}
+.pricecol.us .psum .note{color:rgba(255,255,255,.85)}
+
+/* s14 split */
+.split{display:grid;grid-template-columns:340px 1fr;gap:0;flex:1;margin:0 -64px -40px;overflow:hidden}
+.split .left{background:var(--dark-ticket);color:#F4F2EC;padding:48px 40px;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:center}
+.split .left h2{font-size:27px;font-weight:700;line-height:1.22;letter-spacing:-.01em;margin:14px 0 0}
+.split .right{padding:40px 56px;display:flex;flex-direction:column;justify-content:center;gap:0}
+.prow{display:grid;grid-template-columns:52px 1fr;gap:16px;padding:18px 0;border-top:1px solid var(--hair)}
+.prow:first-child{border-top:none}
+.prow .pn{font-family:var(--mono);font-size:20px;color:var(--ink-faint);font-weight:500}
+.prow .pk{font-family:var(--mono);font-size:12px;letter-spacing:.13em;color:var(--salmon);text-transform:uppercase;margin:0 0 6px}
+.prow p{margin:0;font-size:14.5px;line-height:1.45}
+.prow p b{font-weight:700} .prow p .g{color:var(--ink-soft)}
+
+/* s15 gantt */
+.gantt{flex:1;position:relative;margin-top:10px}
+.g-axis{display:grid;grid-template-columns:150px repeat(8,1fr);font-family:var(--mono);font-size:10px;color:var(--ink-faint);letter-spacing:.06em;padding-bottom:6px;border-bottom:1px solid var(--hair)}
+.g-lane{display:grid;grid-template-columns:150px 1fr;border-bottom:1px solid var(--hair-2);min-height:0}
+.g-lane .lane-name{font-size:12.5px;font-weight:700;padding:10px 8px 10px 0;align-self:center}
+.g-lane .lane-name small{display:block;font-weight:500;color:var(--ink-faint);font-size:9px;font-family:var(--mono);letter-spacing:.05em;margin-top:2px}
+.lane-track{position:relative}
+.chip{position:absolute;background:var(--card);border:1px solid var(--hair);border-radius:10px;padding:5px 10px;font-size:11px;font-weight:600;white-space:nowrap;box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:6px;top:50%;transform:translateY(-50%)}
+.chip::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--salmon);flex:0 0 auto}
+.chip.dark{background:var(--ink);color:var(--cream);border:none}
+.chip.dark::before{background:var(--salmon)}
+.chip.dashed{background:transparent;border:1px dashed var(--salmon);box-shadow:none;color:var(--salmon-2);font-family:var(--mono);font-size:10px;letter-spacing:.04em}
+.chip.dashed::before{display:none}
+.phase-marker{position:absolute;top:0;border-radius:var(--r-pill);padding:6px 16px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:500;transform:translateX(-50%);z-index:4}
+.band{position:absolute;top:26px;bottom:0;background:rgba(250,138,114,.08);z-index:0}
+.phase-lab{position:absolute;font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--salmon-2);top:30px}
+.vline{position:absolute;top:26px;bottom:0;width:1px;border-left:1px dashed rgba(250,138,114,.55);z-index:1}
+.arr-chip{position:absolute;background:var(--salmon);color:#fff;border-radius:14px;padding:10px 16px;text-align:center;z-index:5;box-shadow:var(--shadow)}
+.arr-chip .b{font-size:19px;font-weight:800;letter-spacing:-.01em}
+.arr-chip .s{font-family:var(--mono);font-size:8px;letter-spacing:.14em}
+.ribbon{position:absolute;background:var(--salmon-soft);color:var(--salmon-2);font-family:var(--mono);font-size:9.5px;letter-spacing:.05em;padding:4px 12px;border-radius:8px;text-transform:uppercase;white-space:nowrap;bottom:4px}
+.callout{position:absolute;top:50%;transform:translateY(-50%);background:var(--card);border:1.5px solid var(--salmon);border-radius:12px;padding:8px 13px;box-shadow:var(--shadow-sm);white-space:nowrap;z-index:3}
+.callout .ck{font-family:var(--mono);font-size:8.5px;color:var(--salmon-2);letter-spacing:.12em;text-transform:uppercase}
+.callout .cl{font-size:12px;font-weight:700;margin-top:2px}
+
+/* s16 story chart */
+.story{flex:1;display:flex;align-items:flex-end;gap:0;position:relative;margin-top:8px}
+.signals{display:flex;gap:12px;position:absolute;left:0;bottom:150px;z-index:3}
+.sig{background:var(--card-warm);border:1px solid var(--hair);border-radius:14px;padding:14px 16px;text-align:center;width:118px}
+.sig .sf{font-size:30px;font-weight:800;letter-spacing:-.02em}
+.sig .ss{font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);margin-top:4px;line-height:1.3}
+.bars{position:absolute;right:0;bottom:88px;left:520px;height:310px;display:flex;align-items:flex-end;gap:10px}
+.bar{flex:1;background:linear-gradient(180deg,var(--salmon) 0%,var(--salmon-2) 100%);border-radius:5px 5px 0 0;transition:height 1s cubic-bezier(.2,.7,.3,1);opacity:.9}
+.baseline{position:absolute;left:0;right:0;bottom:88px;height:2px;background:var(--ink)}
+
+/* s17 vision graphic */
+.vision-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:0}
+
+/* s18 thank you */
+.thanks{font-size:66px;font-weight:800;letter-spacing:-.03em}
+
+/* s19 appendix */
+.appendix{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+.appendix .word{font-size:48px;font-weight:800;letter-spacing:-.02em}
+
+/* s20 doctors */
+.loop{padding:20px 22px;display:flex;flex-direction:column;gap:0}
+.loop .lk{font-family:var(--mono);font-size:10px;letter-spacing:.13em;color:var(--salmon);text-transform:uppercase;text-align:center;margin-bottom:14px}
+.loop .box{border:1px solid var(--hair);border-radius:12px;padding:12px;text-align:center;font-family:var(--mono);letter-spacing:.14em;font-weight:600;font-size:15px}
+.loop .box.dark{background:var(--dark-ticket);color:#fff;border:none;display:flex;align-items:center;justify-content:center;gap:10px}
+.loop .cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
+.loop .cols .ck{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:7px}
+.loop .cols p{margin:0 0 8px;font-size:11px;line-height:1.4;color:var(--ink-soft)}
+.loop .cols p b{color:var(--ink);font-weight:700}
+.mockgrid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto auto;gap:10px}
+.mockgrid .m{border-radius:12px;overflow:hidden;border:1px solid var(--hair);background:var(--card-warm);position:relative}
+.mockgrid .m img{width:100%;height:100%;object-fit:cover;object-position:top}
+.mockgrid .m .tag{position:absolute;top:8px;left:8px;background:var(--ink);color:var(--cream);font-family:var(--mono);font-size:8px;letter-spacing:.1em;padding:4px 8px;border-radius:6px;text-transform:uppercase}
+.mockgrid .big{grid-row:1/3;grid-column:1}
+.imgnote{position:absolute;bottom:8px;right:10px;font-family:var(--mono);font-size:8px;color:var(--ink-faint);letter-spacing:.06em}
+</style>
+</head>
+<body>
+<div id="viewport"><div id="stage"></div></div>
+<div id="progress"></div>
+<div id="hint">← → or click to advance · F fullscreen</div>
+
+<!-- ============ SLIDE TEMPLATES ============ -->
+<template id="slides">
+
+<!-- S1 TITLE -->
+<section class="slide" data-steps="0">
+  <div class="brandbar"><span class="onni" style="width:78px"></span></div>
+  <div class="content" style="justify-content:flex-end;padding-bottom:70px">
+    <p class="k">Working Session</p>
+    <div class="s1-title" style="margin-top:14px"><span class="onni" style="width:182px;flex:0 0 auto;position:relative;top:6px"></span> <span class="lt">&lt;&gt;</span> Maveron</div>
+    <p class="mono-lab" style="color:var(--ink-faint);margin-top:22px">07 / 14 / 2026</p>
+  </div>
+  <div class="foot"><span>onni · Confidential</span><span class="pg"></span></div>
+</section>
+
+<!-- S2 THESIS -->
+<section class="slide" data-steps="3">
+  <div class="brandbar"><span class="onni" style="width:66px"></span></div>
+  <div class="content" style="gap:22px;padding-top:36px">
+    <div class="head">
+      <p class="k">The Thesis</p>
+      <h1 class="title">Why onni will be a <span class="accent">category-defining company</span></h1>
+    </div>
+    <div class="grid2" style="margin-top:6px">
+      <div class="card checkcard build" data-step="1">
+        <div class="ck"><svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div><h3>Massive market</h3><p>Check.</p></div>
+      </div>
+      <div class="card checkcard build" data-step="2">
+        <div class="ck"><svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div><h3>Team</h3><p>Check — (humbly).</p></div>
+      </div>
+    </div>
+    <div class="card build" data-step="3" style="padding:30px 36px;display:flex;align-items:center;gap:30px;margin-top:2px">
+      <div style="flex:1">
+        <p class="k" style="font-size:11px">The core question for today’s discussion</p>
+        <div style="font-size:32px;font-weight:800;letter-spacing:-.02em;line-height:1.14;margin-top:12px">Why are we confident we will <span class="accent">win</span> in this massive market?</div>
+      </div>
+      <div style="flex:0 0 auto;width:118px;height:118px;border-radius:50%;border:2.5px solid var(--salmon);display:flex;align-items:center;justify-content:center">
+        <div style="width:22px;height:22px;border-radius:50%;background:var(--salmon)"></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>onni · Confidential</span><span class="pg"></span></div>
+</section>
+
+<!-- S3 POSITIONING -->
+<section class="slide" data-steps="4">
+  <div class="brandbar"><span class="onni" style="width:66px"></span></div>
+  <div class="content" style="padding-top:36px">
+    <div class="head"><p class="k">Positioning</p>
+      <h1 class="title">4 strategic principles <span class="accent">that differentiate us</span></h1></div>
+    <div class="grid2" style="margin-top:30px;gap:22px;flex:1;grid-template-rows:1fr 1fr">
+      <div class="card build" data-step="1" style="padding:26px 30px;display:flex;gap:20px;align-items:flex-start"><div class="num-badge">01</div><div><h3 style="margin:4px 0 0;font-size:26px;font-weight:700;letter-spacing:-.01em">User at the center of everything</h3><p style="margin:14px 0 0;color:var(--ink-soft);font-size:20.5px;line-height:1.5">Incentives aligned with the user — always.</p></div></div>
+      <div class="card build" data-step="2" style="padding:26px 30px;display:flex;gap:20px;align-items:flex-start"><div class="num-badge">02</div><div><h3 style="margin:4px 0 0;font-size:26px;font-weight:700;letter-spacing:-.01em">Experience</h3><p style="margin:14px 0 0;color:var(--ink-soft);font-size:20.5px;line-height:1.5">A category-defining experience that puts the user in the center.</p></div></div>
+      <div class="card build" data-step="3" style="padding:26px 30px;display:flex;gap:20px;align-items:flex-start"><div class="num-badge">03</div><div><h3 style="margin:4px 0 0;font-size:26px;font-weight:700;letter-spacing:-.01em">B2B GTM</h3><p style="margin:14px 0 0;color:var(--ink-soft);font-size:20.5px;line-height:1.5">A brand / partner go-to-market motion, not just D2C.</p></div></div>
+      <div class="card build" data-step="4" style="padding:26px 30px;display:flex;gap:20px;align-items:flex-start"><div class="num-badge">04</div><div><h3 style="margin:4px 0 0;font-size:26px;font-weight:700;letter-spacing:-.01em">Mass-market solution</h3><p style="margin:14px 0 0;color:var(--ink-soft);font-size:20.5px;line-height:1.5">Built for the many, not a premium few.</p></div></div>
+    </div>
+  </div>
+  <div class="foot"><span>onni · Confidential</span><span class="pg"></span></div>
+</section>
+
+<!-- S4 COMPETITIVE LANDSCAPE -->
+<section class="slide" data-steps="5">
+  <div class="brandbar"><span class="onni" style="width:66px"></span></div>
+  <div class="content" style="padding-top:34px">
+    <div class="head"><p class="k" style="font-size:11px">Principle 1 · User in the center · Competition is doing the exact opposite</p>
+      <h1 class="title" style="font-size:30px">The current competitive landscape has an incentive conflict with the end user.</h1></div>
+    <div class="grid4" style="margin-top:54px">
+      <div class="card logocard build" data-step="1"><p class="mk mono-lab">More Products</p><div class="lc-logo"><img src="assets/image1.jpg" alt="The Vitamin Shoppe" style="transform:scale(1.5)"></div><p>A heavier basket, aisle by aisle — with house brands at the register.</p></div>
+      <div class="card logocard build" data-step="2"><p class="mk mono-lab">More Bloodwork</p><div class="lc-logo"><img src="assets/image2.jpg" alt="superpower" style="transform:scale(1.5)"></div><p>Its AI fills a $300–400/mo cart from its own marketplace, plus Rx.</p></div>
+      <div class="card logocard build" data-step="3"><p class="mk mono-lab">More Subscriptions</p><div class="lc-logo"><img src="assets/image3.png" alt="Thorne"></div><p>Additional products, bundles and push towards subscription.</p></div>
+      <div class="card logocard build" data-step="4"><p class="mk mono-lab">More Scans</p><div class="lc-logo"><img src="assets/image4.jpg" alt="Function"></div><p>$365/yr in, then add-on labs, CT scans, MRIs out the back.</p></div>
+    </div>
+    <div class="blackbar build" data-step="5" style="margin-top:44px">The leading metric is upsells; <span class="accent">not a healthier customer.</span></div>
+  </div>
+  <div class="foot"><span>onni · Confidential</span><span class="pg"></span></div>
+</section>
+
+<!-- S5 USER AT CENTER HUB -->
+<section class="slide" data-steps="5">
+  <div class="brandbar"><span class="onni" style="width:66px"></span></div>
+  <div class="content" style="padding-top:34px">
+    <div class="head"><p class="k">Principle 1 · User in the center</p>
+      <h1 class="title accent" style="font-size:29px">We are building the entire company around the user</h1></div>
+    <div class="hub">
+      <svg style="position:absolute;inset:0;width:100%;height:100%;z-index:0" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <line class="build" data-step="1" x1="50" y1="50" x2="50" y2="12" stroke="var(--hair)" stroke-width=".3"/>
+        <line class="build" data-step="2" x1="50" y1="50" x2="17" y2="40" stroke="var(--hair)" stroke-width=".3"/>
+        <line class="build" data-step="3" x1="50" y1="50" x2="17" y2="86" stroke="var(--hair)" stroke-width=".3"/>
+        <line class="build" data-step="4" x1="50" y1="50" x2="83" y2="40" stroke="var(--hair)" stroke-width=".3"/>
+        <line class="build" data-step="5" x1="50" y1="50" x2="83" y2="86" stroke="var(--hair)" stroke-width=".3"/>
+      </svg>
+      <div class="you">YOU</div>
+      <div class="hub-card build" data-step="1" style="top:2px;left:50%;transform:translateX(-50%)"><p class="hc-k">01 · Independent</p><h4>We will never sell you supplements / tests</h4><p>We make and sell nothing — we recommend the best supplements and tests for you, from any brand. Any affiliation, we kick back to the user.</p></div>
+      <div class="hub-card build" data-step="2" style="top:118px;left:0"><p class="hc-k">02 · One simple, affordable model</p><h4>Aligned with what the user truly needs</h4><p>Just the subscription — $9.99/mo (TBD). No hidden costs, no markups; commissions return to you as cashback.</p></div>
+      <div class="hub-card build" data-step="3" style="bottom:2px;left:0"><p class="hc-k">03 · Data control</p><h4>Data shared when it matters</h4><p>Labs, supplements, wearables and health history — shared only with your permission, and only when relevant.</p></div>
+      <div class="hub-card build" data-step="4" style="top:118px;right:0"><p class="hc-k">04 · Any interface</p><h4>Meet you where you are</h4><p>In the app, in your WhatsApp, on your watch — onni meets you on the interface you choose.</p></div>
+      <div class="hub-card build" data-step="5" style="bottom:2px;right:0"><p class="hc-k">05 · Concierge</p><h4>A concierge, not a store</h4><p>We answer, nudge, reorder and follow up. The only thing we optimize is you.</p></div>
+    </div>
+  </div>
+  <div class="foot"><span>onni · Confidential</span><span class="pg"></span></div>
+</section>
+
+<!-- S6a–e EXPERIENCE — embedded interactive slides (own internal step animations) -->
+<section class="slide exp" data-steps="0" style="padding:0">
+  <iframe class="exp-frame" src="exp1.html" title="Supplement lifecycle today" style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe>
+</section>
+<section class="slide exp" data-steps="0" style="padding:0">
+  <iframe class="exp-frame" src="exp2.html" title="Layer 1 · Do it yourself" style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe>
+</section>
+<section class="slide exp" data-steps="0" style="padding:0">
+  <iframe class="exp-frame" src="exp3.html" title="Layer 2 · Curated marketplace" style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe>
+</section>
+<section class="slide exp" data-steps="0" style="padding:0">
+  <iframe class="exp-frame" src="exp4.html" title="Layer 3 · Agent in chat" style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe>
+</section>
+<section class="slide exp" data-steps="0" style="padding:0">
+  <iframe class="exp-frame" src="exp5.html" title="Layer 4 · Agent + device" style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe>
+</section>
+
+<!-- S7 B2B DATA -->
+<section class="slide" data-steps="3">
+  <div class="brandbar"><span class="onni" style="width:66px"></span></div>
+  <div class="content" style="padding-top:34px">
+    <div class="head"><p class="k">Principle 3 — B2B GTM</p>
+      <h1 class="title" style="font-size:29px">We distilled a unique value for brands — <span class="accent">data they can’t get anywhere else.</span></h1></div>
+    <div style="display:grid;grid-template-columns:1fr 1.15fr 1.15fr;gap:20px;margin-top:20px;align-items:stretch">
+      <div class="build" data-step="1" style="display:flex;flex-direction:column;padding-top:34px">
+        <div class="bigfig">15+</div>
+        <p style="margin:10px 0 0;font-size:15px;color:var(--ink-soft)">leading supplement brands told us the same thing:</p>
+        <p style="margin:14px 0 0;font-size:19px;font-weight:700;letter-spacing:-.01em;line-height:1.3">“Our biggest pain point is lack of data.”</p>
+        <div class="brandgrid">
+          <div class="bl"><img src="assets/image5.jpg" alt="Thorne"></div>
+          <div class="bl"><img src="assets/image1.jpg" alt="Vitamin Shoppe"></div>
+          <div class="bl"><img src="assets/image7.jpeg" alt="energybyte"></div>
+          <div class="bl"><img src="assets/image8.png" alt="nutravita"></div>
+          <div class="bl"><img src="assets/image6.png" alt="live conscious"></div>
+          <div class="bl"><img src="assets/image9.png" alt="Om"></div>
+        </div>
+      </div>
+      <div class="card datacard build" data-step="2">
+        <h3>Usage data</h3><p class="sub">How your customers actually buy &amp; consume</p>
+        <ul><li><b>Live inventory</b> — you know when every customer runs out</li>
+        <li><b>The whole shelf</b> — everything they take &amp; buy, not just your SKUs</li>
+        <li><b>True consumption</b> — what’s actually taken, not just shipped</li></ul>
+        <div class="socan"><span class="lab">So you can</span><p>Right offer, right customer, right moment — no overstock churn, no empty bottles.</p><span class="moves salmon">Moves&nbsp;&nbsp;CAC ↓ · LTV ↑</span></div>
+      </div>
+      <div class="card datacard build" data-step="3">
+        <h3>Outcomes data</h3><p class="sub">What your products actually do for people</p>
+        <ul><li><b>Measured impact</b> — how users feel &amp; perform on your products</li>
+        <li><b>Efficacy at scale</b> — what works, for whom, at what dose</li>
+        <li><b>Category trends</b> — what’s rising before retail sees it</li></ul>
+        <div class="socan"><span class="lab">So you can</span><p>Show customers the true value of their products through “clinically-trialed” data they didn’t have before.</p><span class="moves dark">Moves&nbsp;&nbsp;Brand · R&amp;D · Strategy</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>onni · Confidential</span><span class="pg"></span></div>
+</section>
+
+<!-- S8 TWO THINGS -->
+<section class="slide" data-steps="2">
+  <div class="brandbar"><span class="onni" style="width:66px"></span></div>
+  <div class="content" style="padding-top:36px">
+    <div class="head"><p class="k">Principle 3 — B2B GTM</p>
+      <h1 class="title" style="font-size:30px">By going B2B2C and being an open data platform, <span class="accent">we achieve two things:</span></h1></div>
+    <div class="grid2" style="margin-top:28px;gap:24px;align-items:start">
+      <div class="card abcard build" data-step="1">
+        <div class="letter">A</div><h3>Massive growth at low CAC</h3>
+        <div class="abrow"><p class="rk">Placement</p><p><b>We live on our brands’ websites</b> — the highest-intent surface in commerce, handed to us.</p></div>
+        <div class="abrow"><p class="rk">Mutual incentive</p><p>Every user a brand sends us comes back as reorders, retention and insight — so <b>brands actively push their customers onto onni.</b></p></div>
+      </div>
+      <div class="card abcard build" data-step="2">
+        <div class="letter">B</div><h3>True partnership based on unique data</h3>
+        <div class="abrow"><p class="rk">Only one of its kind</p><p><b>onni is the only true partner to brands.</b> Everyone else sells to brands or competes with them — we win with them.</p></div>
+        <div class="abrow"><p class="rk">The moat</p><p>We alone see life after checkout: <b>what users take, stack, skip and reorder</b> — across every brand in their routine. A big first-mover advantage.</p></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>onni · Confidential</span><span class="pg"></span></div>
+</section>
+
+<!-- S9 PARTNER PORTAL FULL BLEED -->
+<section class="slide" data-steps="0" style="padding:0">
+  <div class="fullimg"><img src="assets/image10.png" alt="onni partner portal"></div>
+  <div class="foot" style="left:24px;right:24px;bottom:14px;color:rgba(20,19,16,.55)"><span></span><span class="pg"></span></div>
+</section>
+
+<!-- S10 UNIT ECONOMICS -->
+<section class="slide" data-steps="8">
+  <div class="brandbar"><span class="onni" style="width:66px"></span></div>
+  <div class="content" style="padding-top:34px">
+    <div class="head"><p class="k" style="font-size:11px">Principle 3 — B2B GTM · Unit economics</p>
+      <h1 class="title" style="font-size:30px">How revenue grows with brands — <span class="accent">the B2B flywheel in numbers.</span></h1></div>
+    <div class="econ-cards">
+      <div class="econ-card build" data-step="1"><div class="ef">20K</div><div class="es">monthly orders per brand</div><div class="foot-note">20,000/mo × 70% first-time × 12 = 168,000 users / yr</div></div>
+      <div class="times build" data-step="2">×</div>
+      <div class="econ-card hl build" data-step="2"><div class="ef">10%</div><div class="es">conversion</div></div>
+      <div class="times build" data-step="3">×</div>
+      <div class="econ-card build" data-step="3"><div class="ef">$9.99</div><div class="es">per month</div></div>
+      <div class="times build" data-step="4">×</div>
+      <div class="econ-card build" data-step="4"><div class="ef">12</div><div class="es">months</div></div>
+      <div class="times build" data-step="5">×</div>
+      <div class="econ-card build" data-step="5"><div class="ef">70%</div><div class="es">annual gross retention</div></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:26px">
+      <div class="eq-row build" data-step="6"><div class="eq-formula"><b>1</b> brand × <b>20K</b> users/mo × <b>12</b> mo × <b>10%</b> conv × <b>$9.99</b>/mo × <b>12</b> mo × <b>70%</b> GDR</div><div class="eq-eq">=</div><div class="eq-res">$1.4M</div><div class="eq-subs">11,760 subs</div></div>
+      <div class="eq-row build" data-step="7"><div class="eq-formula"><b>5</b> brands × <b>20K</b> users/mo × <b>12</b> mo × <b>10%</b> conv × <b>$9.99</b>/mo × <b>12</b> mo × <b>70%</b> GDR</div><div class="eq-eq">=</div><div class="eq-res">$7.1M</div><div class="eq-subs">58,800 subs</div></div>
+      <div class="eq-row hl build" data-step="8"><div class="eq-formula"><b>15</b> brands × <b>20K</b> users/mo × <b>12</b> mo × <b>10%</b> conv × <b>$9.99</b>/mo × <b>12</b> mo × <b>70%</b> GDR</div><div class="eq-eq">=</div><div class="eq-res">$21.1M</div><div class="eq-subs">176,400 subs</div></div>
+    </div>
+  </div>
+  <div class="foot"><span>onni · Confidential</span><span class="pg"></span></div>
+</section>
+
+<!-- S11 MASS MARKET FRACTION -->
+<section class="slide" data-steps="3">
+  <div class="brandbar"><span class="onni" style="width:66px"></span></div>
+  <div class="content" style="padding-top:34px">
+    <div class="head"><p class="k">Principle 4 · Mass market</p>
+      <h1 class="title" style="font-size:29px">The current leading solutions cater to a fraction of the market</h1></div>
+    <div class="grid3" style="margin-top:22px;flex:1">
+      <div class="card mmcard build" data-step="1"><p class="mk">01 · Incentives</p><h3>A clear conflict of interest between recommending what’s right for the user vs. pushing their own branded products.</h3>
+        <div class="mmshot stack"><img class="a" src="assets/image11.png" alt=""><img class="b" src="assets/image12.png" alt=""></div></div>
+      <div class="card mmcard build" data-step="2"><p class="mk">02 · Price</p><h3>Extremely high price boxes out the majority of the market, followed by a constant push to upsell at high margins.</h3>
+        <div class="mmshot" style="display:flex;flex-direction:column"><img src="assets/image14.png" style="width:100%;height:auto;flex:0 0 auto;background:#FCFAF5;padding:8px 10px;box-sizing:border-box" alt=""><img src="assets/image13.png" style="flex:1;min-height:0;object-fit:cover;object-position:top" alt=""></div></div>
+      <div class="card mmcard build" data-step="3"><p class="mk">03 · Friction</p><h3>Blood test first, then wait; supplement second, protocol third — endless add-ons create a lot of friction to start.</h3>
+        <div class="mmshot" style="display:flex;align-items:center;background:#fff"><img src="assets/image15.png" alt="" style="width:100%;height:auto;object-fit:contain;padding:8px;box-sizing:border-box"></div></div>
+    </div>
+  </div>
+  <div class="foot"><span>onni · Confidential</span><span class="pg"></span></div>
+</section>
+
+<!-- S12 PRICING COMPARISON -->
+<section class="slide" data-steps="3">
+  <div class="brandbar"><span class="onni" style="width:66px"></span></div>
+  <div class="content" style="padding-top:32px">
+    <div class="head"><p class="k" style="font-size:10.5px">Principle 4 · Mass market · What Function &amp; Superpower really cost</p>
+      <h1 class="title" style="font-size:28px">The membership is the cheapest thing they sell you. <span class="accent">Everything you really need is an add-on.</span></h1></div>
+    <div class="grid3" style="margin-top:20px;gap:18px">
+      <div class="card pricecol build" data-step="1">
+        <div class="pc-top"><span class="pc-name">FUNCTION</span><span class="pc-price">$365/yr</span></div>
+        <div class="pc-adv">Advertised · “$1 a day” (cut from $499)</div>
+        <div class="pline"><div class="pl-l"><b>Membership</b><span>160+ lab tests · two Quest visits a year</span></div><div class="pl-r">$365/yr</div></div>
+        <div class="pline"><div class="pl-l"><b>Add-on lab tests</b><span>Galleri, ApoE, allergies, heavy metals — none included</span></div><div class="pl-r">each extra</div></div>
+        <div class="pline"><div class="pl-l"><b>Heart + lung CT scans</b><span>coronary calcium CT $349 · lung CT $399</span></div><div class="pl-r">$349–399</div></div>
+        <div class="pline"><div class="pl-l"><b>MRI scans (Ezra, ’25)</b><span>annual $899 · with spine $1,499 · premium $3,999</span></div><div class="pl-r">$899+</div></div>
+        <div class="pline"><div class="pl-l"><b>Supplement layer (SuppCo, ’26)</b><span>ratings + protocols one tap from checkout</span></div><div class="pl-r">coming</div></div>
+        <div class="psum"><div class="lab">Membership + scans alone</div><div class="big">$2,012+/yr <span class="note">before a single add-on lab</span></div></div>
+      </div>
+      <div class="card pricecol build" data-step="2">
+        <div class="pc-top"><span class="pc-name">SUPERPOWER</span><span class="pc-price">$199/yr</span></div>
+        <div class="pc-adv">Advertised · $399 in NY &amp; NJ</div>
+        <div class="pline"><div class="pl-l"><b>Membership</b><span>100+ biomarkers · one blood draw a year</span></div><div class="pl-r">$199/yr</div></div>
+        <div class="pline"><div class="pl-l"><b>Blood draw at home</b><span>the Quest line is “free” — skipping it isn’t</span></div><div class="pl-r">+$119</div></div>
+        <div class="pline"><div class="pl-l"><b>Re-testing</b><span>one panel a year included; progress costs extra</span></div><div class="pl-r">~$179 ea</div></div>
+        <div class="pline"><div class="pl-l"><b>Add-on tests</b><span>gut microbiome, heavy metals, toxins, Galleri</span></div><div class="pl-r">extra</div></div>
+        <div class="pline"><div class="pl-l"><b>The protocol itself</b><span>AI prescribes $300–400/mo from its own marketplace, plus Rx</span></div><div class="pl-r">$300–400/mo</div></div>
+        <div class="psum"><div class="lab">Follow the program</div><div class="big">$3,500–5,000/yr <span class="note">≈20× the sticker</span></div></div>
+      </div>
+      <div class="card pricecol us build" data-step="3">
+        <div class="pc-top"><span class="onni" style="width:74px;--wm-ink:#1A1A17;--wm-dot:#1A1A17"></span><span class="pc-price">$9.99/mo</span></div>
+        <div class="pc-adv">All-in · nothing billed on top</div>
+        <div class="pline"><div class="pl-l"><b>The whole picture</b><span>reads every lab, scan &amp; protocol you already own</span></div><div class="pl-r">included</div></div>
+        <div class="pline"><div class="pl-l"><b>Your protocol</b><span>what to actually take, ranked — not a storefront</span></div><div class="pl-r">included</div></div>
+        <div class="pline"><div class="pl-l"><b>Re-reads</b><span>re-scores every time new results land</span></div><div class="pl-r">free</div></div>
+        <div class="pline"><div class="pl-l"><b>No marketplace</b><span>we don’t sell the supplements we recommend</span></div><div class="pl-r">$0</div></div>
+        <div class="pline"><div class="pl-l"><b>Works day one</b><span>no draws, no waitlists, no appointments</span></div><div class="pl-r">included</div></div>
+        <div class="psum"><div class="lab">All in, per year</div><div class="big">$120/yr <span class="note">everything above — nothing on top</span></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>onni · Confidential</span><span class="pg"></span></div>
+</section>
+
+<!-- S13 SECTION DIVIDER (DARK) -->
+<section class="slide dark" data-steps="0">
+  <div class="brandbar"><span class="onni" style="width:78px"></span></div>
+  <div class="content" style="justify-content:center">
+    <p class="k">Up next</p>
+    <h1 class="title" style="font-size:56px;font-weight:800;line-height:1.05;margin-top:16px">Operational plan,<br>milestones <span class="accent">&amp; timeline</span></h1>
+  </div>
+  <div class="foot"><span>onni · Confidential</span><span class="pg"></span></div>
+</section>
+
+<!-- S14 OPERATING PRINCIPLES SPLIT -->
+<section class="slide" data-steps="4" style="padding-top:0;padding-bottom:0;overflow:hidden">
+  <div class="split">
+    <div class="left">
+      <span class="brandbar" style="position:absolute;top:36px;left:40px"><span class="onni" style="width:70px;--wm-ink:#F4F2EC"></span></span>
+      <p class="k" style="font-size:10.5px">Operational plan, milestones &amp; timeline</p>
+      <h2>There are few operating principles we plan to <span class="accent">religiously follow</span> to run the company from day 1</h2>
+    </div>
+    <div class="right">
+      <div class="prow build" data-step="1"><div class="pn">01</div><div><p class="pk">Velocity</p><p><b>Our main advantage as a startup is speed</b> <span class="g">— we must iterate extremely quickly and be known for our speed of execution.</span></p></div></div>
+      <div class="prow build" data-step="2"><div class="pn">02</div><div><p class="pk">Brand and community first</p><p><b>Trust is what we actually sell</b> <span class="g">— from day 0, before we even have a product, we invest in brand and community, so our users become our loudest growth channel.</span></p></div></div>
+      <div class="prow build" data-step="3"><div class="pn">03</div><div><p class="pk">Builder mentality</p><p><b>High agency, complete ownership</b> <span class="g">— more agents than people.</span></p></div></div>
+      <div class="prow build" data-step="4"><div class="pn">04</div><div><p class="pk">Capital efficiency</p><p><b>ROI driven</b> <span class="g">— strong conviction around every dollar spent.</span></p></div></div>
+    </div>
+  </div>
+  <div class="foot"><span>onni · Confidential</span><span class="pg"></span></div>
+</section>
+
+<!-- S15 GANTT (built by JS) -->
+<section class="slide" data-steps="24">
+  <div class="brandbar"><span class="onni" style="width:66px"></span></div>
+  <div class="content" style="padding-top:34px">
+    <div class="head"><p class="k">Operational plan, milestones &amp; timeline</p>
+      <h1 class="title" style="font-size:29px">A quick iteration gameplan</h1></div>
+    <div class="gantt" id="gantt"></div>
+  </div>
+  <div class="foot"><span>onni · Confidential</span><span class="pg"></span></div>
+</section>
+
+<!-- S16 STORY CHART -->
+<section class="slide" data-steps="0">
+  <div class="brandbar"><span class="onni" style="width:66px"></span></div>
+  <div class="content" style="padding-top:34px">
+    <div class="head"><p class="k">The story</p>
+      <h1 class="title" style="font-size:30px;line-height:1.15">Phase 1: Fast iterations to find PMF<br>Phase 2: Scale relentlessly</h1></div>
+    <div class="story">
+      <div class="signals">
+        <div class="sig"><div class="sf">1,000</div><div class="ss">Active users</div></div>
+        <div class="sig"><div class="sf">3%</div><div class="ss">Monthly gross churn</div></div>
+        <div class="sig"><div class="sf">$1M</div><div class="ss">Annual GMV run-rate</div></div>
+      </div>
+      <div class="vline" style="left:490px;top:4px;bottom:88px;position:absolute"></div>
+      <div style="position:absolute;left:490px;top:-16px;transform:translateX(-50%);font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--salmon-2);text-transform:uppercase;white-space:nowrap">Product–market fit</div>
+      <div style="position:absolute;right:0;top:-8px;text-align:right"><span style="font-size:40px;font-weight:800;color:var(--salmon);letter-spacing:-.02em">$10M</span><div class="mono-lab" style="color:var(--salmon-2)">ARR</div></div>
+      <div style="position:absolute;left:520px;right:8px;bottom:380px;border-top:1.5px dashed rgba(250,138,114,.45)"></div>
+      <div class="bars" id="storybars"></div>
+      <div class="baseline"></div>
+      <!-- timeline dots -->
+      <div style="position:absolute;left:34px;bottom:83px;width:12px;height:12px;border-radius:50%;background:var(--ink)"></div>
+      <div style="position:absolute;left:34px;bottom:50px;font-family:var(--mono);font-size:10px;color:var(--ink);letter-spacing:.1em;font-weight:500;line-height:1.5">LAUNCH<br><span style="color:var(--ink-faint)">MONTH 0</span></div>
+      <div style="position:absolute;left:254px;bottom:83px;width:12px;height:12px;border-radius:50%;background:var(--ink)"></div>
+      <div style="position:absolute;left:254px;bottom:50px;font-family:var(--mono);font-size:10px;color:var(--ink);letter-spacing:.1em;font-weight:500;line-height:1.5">APP LAUNCH<br><span style="color:var(--ink-faint)">EARLY TRACTION</span></div>
+      <!-- PMF marker on the axis -->
+      <div style="position:absolute;left:490px;bottom:78px;width:20px;height:20px;border-radius:50%;border:2px solid var(--salmon);background:var(--cream);transform:translateX(-50%);display:flex;align-items:center;justify-content:center;z-index:2"><div style="width:8px;height:8px;border-radius:50%;background:var(--salmon)"></div></div>
+      <!-- phase brackets -->
+      <div style="position:absolute;left:34px;width:432px;bottom:22px;height:7px;border-left:1px solid var(--ink-faint);border-right:1px solid var(--ink-faint);border-bottom:1px solid var(--ink-faint)"></div>
+      <div style="position:absolute;left:34px;width:432px;bottom:2px;text-align:center;font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--ink-faint)">PHASE 1 · FIND PMF</div>
+      <div style="position:absolute;left:514px;right:8px;bottom:22px;height:7px;border-left:1px solid var(--ink-faint);border-right:1px solid var(--ink-faint);border-bottom:1px solid var(--ink-faint)"></div>
+      <div style="position:absolute;left:514px;right:8px;bottom:2px;text-align:center;font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--ink-faint)">PHASE 2 · SCALE</div>
+    </div>
+  </div>
+  <div class="foot"><span>onni · Confidential</span><span class="pg"></span></div>
+</section>
+
+<!-- S17 VISION (DARK) -->
+<section class="slide dark" data-steps="0">
+  <div class="brandbar"><span class="onni" style="width:66px"></span></div>
+  <div class="content" style="justify-content:center;align-items:center;text-align:center">
+    <p class="k">The vision</p>
+    <h1 class="title" style="font-size:42px;font-weight:800;max-width:800px;text-align:center;line-height:1.15;margin-top:14px">We improve people’s health and quality of life</h1>
+    <div id="visiongfx" style="margin:44px 0 40px;display:block;width:100%;text-align:center"></div>
+    <p style="font-size:26px;font-weight:700;letter-spacing:-.01em;max-width:760px;margin:0">by helping every person take the supplements that are <span class="accent">right for them.</span></p>
+  </div>
+  <div class="foot"><span>onni · Confidential</span><span class="pg"></span></div>
+</section>
+
+<!-- S18 THANK YOU -->
+<section class="slide" data-steps="0">
+  <div class="brandbar"><span class="onni" style="width:78px"></span></div>
+  <div class="content" style="justify-content:center">
+    <div class="thanks">Thank you.</div>
+  </div>
+  <div class="foot"><span>onni · Confidential</span><span class="pg"></span></div>
+</section>
+
+<!-- S19 APPENDIX -->
+<section class="slide" data-steps="0">
+  <div class="brandbar"><span class="onni" style="width:66px"></span></div>
+  <div class="content appendix">
+    <span class="pill ghost">Section</span>
+    <div class="word">Appendix</div>
+  </div>
+  <div class="foot"><span>onni · Confidential</span><span class="pg"></span></div>
+</section>
+
+<!-- S20 DOCTORS -->
+<section class="slide" data-steps="0">
+  <div class="brandbar"><span class="onni" style="width:66px"></span></div>
+  <div class="content" style="padding-top:34px">
+    <div class="head"><p class="k">Principle 3 — B2B GTM</p>
+      <h1 class="title" style="font-size:28px">The same value prop applies to doctors — <span class="accent">distribution down, data back up.</span></h1></div>
+    <div style="display:grid;grid-template-columns:0.9fr 1.25fr;gap:22px;margin-top:20px;flex:1">
+      <div class="card loop">
+        <p class="lk">Same loop, new channel</p>
+        <div class="box">DOCTORS</div>
+        <div class="cols">
+          <div><p class="ck">The doctor gets</p>
+            <p><b>Data:</b> what patients actually take between visits — every dose logged, self-added supplements flagged for interactions, labs synced back.</p>
+            <p><b>Lead generation:</b> identify &amp; get referrals for ICP customers.</p>
+            <p><b>Referral fee:</b> a chunk of the onni subscription for every user acquired through them.</p></div>
+          <div><p class="ck">onni gets</p>
+            <p><b>Distribution:</b> low-CAC reach to supplement users, collaboration &amp; affiliation.</p>
+            <p><b>Brand building:</b> being identified and recommended by doctors.</p></div>
+        </div>
+        <div class="box dark"><span class="onni" style="width:50px;--wm-ink:#F4F2EC"></span></div>
+        <p style="text-align:center;font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--ink-faint);margin:12px 0 0;text-transform:uppercase">Doctors recommend. onni fulfills, tracks &amp; reports back.</p>
+      </div>
+      <div style="display:flex;flex-direction:column">
+        <p class="mono-lab" style="font-size:10.5px;margin:0 0 12px">onni Clinic · Practitioner portal · Mockups</p>
+        <div class="mockgrid" style="display:flex;flex-direction:column;gap:10px;flex:1;align-items:center;justify-content:center">
+          <div class="m" style="width:59%"><span class="tag">AI Protocol Studio</span><img src="assets/image16.png" alt="" style="height:auto;object-fit:unset;display:block"></div>
+          <div style="display:flex;gap:10px;justify-content:center;width:100%">
+            <div class="m" style="width:51%"><span class="tag">Live patient panel</span><img src="assets/image17.png" alt="" style="height:auto;object-fit:unset;display:block"></div>
+            <div class="m" style="width:40%"><span class="tag">Patient detail</span><img src="assets/image18.png" alt="" style="height:auto;object-fit:unset;display:block"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>onni · Confidential</span><span class="pg"></span></div>
+</section>
+
+</template>
+
+<script>
+/* ===== onni wordmark SVG — matched to onni_v8 reference =====
+   thin monoline (stroke ≈ letter-height/12.75), circle o, semicircular
+   arched n's, x-height i stem with raised floating dot (~1.75× stroke) */
+const ONNI_SVG = `<svg viewBox="0 0 346 142" style="width:100%;height:auto;display:block" aria-label="onni">
+<circle class="st" cx="51" cy="85" r="47"/>
+<path class="st" d="M135 132 L135 72.5 A34.5 34.5 0 0 1 204 72.5 L204 132"/>
+<path class="st" d="M236 132 L236 72.5 A34.5 34.5 0 0 1 305 72.5 L305 132"/>
+<path class="st" d="M338 132 L338 38"/>
+<circle class="dt" cx="338" cy="18" r="7"/></svg>`;
+
+/* ===== decorative concentric rings ===== */
+function rings(dark){
+  const stroke = 'var(--salmon)';
+  const faint = dark ? 'rgba(250,138,114,.28)' : 'rgba(250,138,114,.35)';
+  return `<svg width="100%" height="100%" viewBox="0 0 700 700" fill="none">
+    <circle cx="470" cy="300" r="330" stroke="${faint}" stroke-width="1.2"/>
+    <circle cx="470" cy="300" r="250" stroke="${stroke}" stroke-width="2"/>
+    <circle cx="470" cy="300" r="175" stroke="${faint}" stroke-width="1.2"/>
+    <circle cx="558" cy="212" r="46" fill="var(--salmon)"/>
+  </svg>`;
+}
+
+/* ===== build slides into stage ===== */
+const stage = document.getElementById('stage');
+const tpl = document.getElementById('slides').content;
+const slides = [];
+tpl.querySelectorAll('.slide').forEach((s,i)=>{
+  const node = document.importNode(s,true);
+  // rings placeholders
+  node.querySelectorAll('.rings').forEach(r=>{
+    const dark = node.classList.contains('dark') || r.textContent.includes('DARK');
+    r.innerHTML = rings(dark);
+  });
+  // onni marks
+  node.querySelectorAll('.onni').forEach(o=>o.innerHTML=ONNI_SVG);
+  // page number
+  const pg = node.querySelector('.pg'); if(pg) pg.textContent = String(i+1).padStart(2,'0');
+  stage.appendChild(node);
+  slides.push(node);
+});
+
+/* ===== gantt (slide 15) ===== */
+function buildGantt(){
+  const g = stage.querySelector('#gantt'); if(!g||g.dataset.done) return; g.dataset.done=1;
+  const P = f=>`calc(150px + (100% - 150px)*${f})`;   // x position across track area
+  const M = m=>(m/24*100);                             // month -> % of lane track
+  // axis
+  let axis = '<div class="g-axis"><span></span>';
+  ['M0','M3','M6','M9','M12','M15','M18','M21'].forEach(m=>axis+=`<span>${m}</span>`);
+  axis+='</div>';
+  /* steps follow the original pptx build order:
+     1 Soft launch  2 Agent launch  3 Series A  4 Product lane + Phase1  5 GTM lane
+     6 Team lane  7 Milestones lane  8 3 builders  9 Marketer  10 Agentic engine
+     11 10 doctors  12 Community ribbon  13 Phase2  14 MVP+soft launch  15 App launch
+     16 Continuous-iteration ribbon  17 Marketing agency  18 Quarterly report
+     19 At-app-launch callout  20 Revenue on  21 Phase3  22 Series A kickoff
+     23 $10M ARR  24 Cash balances */
+  const lanes = [
+    {name:'Product', step:4, h:96, chips:[
+      {l:'Working agentic engine',m:3,step:10,y:44},
+      {l:'MVP + soft launch',m:7.2,step:14,y:44},
+      {l:'App launch',m:10.4,step:15,dark:1,y:44}],
+     ribbons:[{l:'Continuous iteration · weekly releases · M12 →',m:12,step:16}]},
+    {name:'GTM', sub:'brands · doctors · users', step:5, h:118, chips:[
+      {l:'10 doctors signed',m:5.8,step:11,y:24},
+      {l:'Quarterly report #1 →',m:10.2,step:18,y:24}],
+     callout:{k:'At app launch · M12',l:'15 brands + 2 HYROX-style partnerships',m:13.2,step:19},
+     ribbons:[{l:'Community building + paid marketing · M3 →',m:3,step:12}]},
+    {name:'Team &amp; Hiring', step:6, h:96, chips:[
+      {l:'3 builders · eng now',m:.3,step:8,y:28},
+      {l:'Marketer',m:.3,step:9,y:72},
+      {l:'Marketing agency',m:8.6,step:17}]},
+    {name:'Key business milestones', step:7, h:88, chips:[
+      {l:'Revenue on',m:10.8,step:20},
+      {l:'Series A · kickoff',m:16.8,step:22,dark:1}]},
+  ];
+  let html = axis;
+  lanes.forEach(L=>{
+    let track=`<div class="lane-track" style="min-height:${L.h}px">`;
+    (L.chips||[]).forEach(c=>{ track+=`<div class="chip ${c.dark?'dark':''} build" data-step="${c.step}" style="left:${M(c.m)}%${c.y?';top:'+c.y+'%':''}">${c.l}</div>`; });
+    (L.ribbons||[]).forEach(r=>{ track+=`<div class="ribbon build" data-step="${r.step}" style="left:${M(r.m)}%;right:6px">${r.l}</div>`; });
+    if(L.callout){ const c=L.callout; track+=`<div class="callout build" data-step="${c.step}" style="left:${M(c.m)}%;top:52%"><div class="ck">${c.k}</div><div class="cl">${c.l}</div></div>`; }
+    if(L.name.indexOf('milestones')>-1){ track+=`<div class="arr-chip build" data-step="23" style="right:0;top:50%;transform:translateY(-50%)"><div class="b">$10M ARR</div><div class="s">MONTH 24</div></div>`; }
+    track+=`</div>`;
+    html+=`<div class="g-lane"><div class="lane-name build" data-step="${L.step}">${L.name}${L.sub?`<small>${L.sub}</small>`:''}</div>${track}</div>`;
+  });
+  // cash-balance row (step 24)
+  html+=`<div class="g-lane"><div class="lane-name"></div><div class="lane-track" style="min-height:46px">`;
+  [['$7M cash balance',0.3],['$6M cash balance',6],['$4.5M cash balance',12],['$2M cash balance',18]].forEach(([l,m])=>{
+    html+=`<div class="chip dashed build" data-step="24" style="left:${M(m)}%">${l}</div>`;
+  });
+  html+=`</div></div>`;
+  g.innerHTML = html;
+  // overlays: markers, phase bands/labels, vlines, ARR chip
+  const ov = document.createElement('div');
+  ov.style.cssText='position:absolute;inset:0;pointer-events:none';
+  ov.innerHTML = `
+    <div class="band build" data-step="13" style="left:${P(8/24)};right:calc((100% - 150px)*${6/24})"></div>
+    <div class="band build" data-step="21" style="left:${P(18/24)};right:0"></div>
+    <div class="vline build" data-step="13" style="left:${P(8/24)}"></div>
+    <div class="vline build" data-step="3" style="left:${P(18/24)}"></div>
+    <div class="phase-marker build" data-step="1" style="left:${P(8/24)};background:var(--card);border:1px solid var(--hair)">Soft launch</div>
+    <div class="phase-marker build" data-step="2" style="left:${P(12/24)};background:var(--salmon);color:#fff">Agent launch</div>
+    <div class="phase-marker build" data-step="3" style="left:${P(18/24)};background:var(--ink);color:var(--cream)">Series A</div>
+    <div class="phase-lab build" data-step="4" style="left:${P(1/24)}">Phase 1 · Build</div>
+    <div class="phase-lab build" data-step="13" style="left:${P(8.6/24)}">Phase 2 · Launch &amp; grow</div>
+    <div class="phase-lab build" data-step="21" style="left:${P(18.4/24)}">Phase 3 · Scale</div>`;
+  g.appendChild(ov);
+}
+
+/* ===== story bars (slide 16) ===== */
+function buildStoryBars(){
+  const b = stage.querySelector('#storybars'); if(!b||b.dataset.done) return; b.dataset.done=1;
+  const vals=[4,7,11,16,23,31,42,55,68,80,91,100];
+  vals.forEach(v=>{ const d=document.createElement('div'); d.className='bar'; d.style.height='0px'; d.dataset.h=v; b.appendChild(d); });
+}
+function animateStoryBars(){
+  const b = stage.querySelector('#storybars'); if(!b) return;
+  b.querySelectorAll('.bar').forEach((d,i)=>{ setTimeout(()=>{ d.style.height=(d.dataset.h*2.9)+'px'; }, 120+i*70); });
+}
+
+/* ===== vision graphic (slide 17) ===== */
+function buildVision(){
+  const v = stage.querySelector('#visiongfx'); if(!v||v.dataset.done) return; v.dataset.done=1;
+  let dots=''; const seed=[[40,60,4],[70,90,3],[95,50,5],[120,120,6],[150,80,3],[60,140,4],[100,40,3],[175,150,4],[200,95,7],[145,170,3],[85,185,4],[30,110,3],[210,55,3],[160,30,4],[230,130,5]];
+  seed.forEach(([x,y,r])=>{dots+=`<circle cx="${x}" cy="${y}" r="${r}" fill="rgba(244,242,236,.28)"/><line x1="${x}" y1="${y}" x2="400" y2="110" stroke="rgba(244,242,236,.12)" stroke-width="1"/>`;});
+  let fan=''; [[620,60],[640,110],[625,165],[590,205]].forEach(([x,y])=>{fan+=`<line x1="430" y1="110" x2="${x}" y2="${y}" stroke="var(--salmon)" stroke-width="1.3"/><circle cx="${x}" cy="${y}" r="7" fill="var(--salmon)"/>`;});
+  v.innerHTML=`<svg width="680" height="230" viewBox="0 0 700 230" fill="none">${dots}
+    <circle cx="400" cy="110" r="66" stroke="var(--salmon)" stroke-width="2"/>
+    <circle cx="400" cy="110" r="13" fill="var(--salmon)"/>${fan}</svg>`;
+}
+
+/* ===== navigation engine ===== */
+let cur=0, step=0;
+function totalSteps(i){ return parseInt(slides[i].dataset.steps||'0',10); }
+function applySteps(){
+  const s=slides[cur];
+  s.querySelectorAll('.build').forEach(el=>{
+    const st=parseInt(el.dataset.step||'1',10);
+    el.classList.toggle('in', st<=step);
+  });
+}
+function show(i){
+  slides.forEach((s,idx)=>s.classList.toggle('active', idx===i));
+  cur=i; step=0;
+  if(slides[i].querySelector('#gantt')) buildGantt();
+  if(slides[i].querySelector('#storybars')){ buildStoryBars(); }
+  if(slides[i].querySelector('#visiongfx')) buildVision();
+  applySteps();
+  if(slides[i].querySelector('#storybars')) setTimeout(animateStoryBars,200);
+  updateProgress();
+}
+function curFrame(){
+  const f = slides[cur].querySelector('iframe.exp-frame');
+  try{ return f && f.contentWindow; }catch(e){ return null; }
+}
+function next(){
+  const w = curFrame();
+  if(w){ try{ if(w.__next && w.__next()) return; }catch(e){} }
+  if(step<totalSteps(cur)){ step++; applySteps(); updateProgress(); }
+  else if(cur<slides.length-1){
+    show(cur+1);
+    const w2 = curFrame(); if(w2){ try{ w2.__goto && w2.__goto(0); }catch(e){} }
+  }
+}
+function prev(){
+  const w = curFrame();
+  if(w){ try{ if(w.__prev && w.__prev()) return; }catch(e){} }
+  if(step>0){ step--; applySteps(); updateProgress(); }
+  else if(cur>0){
+    show(cur-1); step=totalSteps(cur); applySteps(); updateProgress();
+    const w2 = curFrame(); if(w2){ try{ w2.__goto && w2.__goto(w2.__max||0); }catch(e){} }
+  }
+}
+window.__deckNext = next; window.__deckPrev = prev;
+function updateProgress(){
+  let done=0,tot=0;
+  for(let i=0;i<slides.length;i++){ tot+=totalSteps(i)+1; done+= (i<cur? totalSteps(i)+1 : (i===cur? step+1:0)); }
+  document.getElementById('progress').style.width=(done/tot*100)+'%';
+}
+
+document.addEventListener('keydown',e=>{
+  if(['ArrowRight','ArrowDown',' ','PageDown'].includes(e.key)){e.preventDefault();next();}
+  else if(['ArrowLeft','ArrowUp','PageUp'].includes(e.key)){e.preventDefault();prev();}
+  else if(e.key==='Home'){show(0);}
+  else if(e.key==='End'){show(slides.length-1);}
+  else if(e.key==='f'||e.key==='F'){ if(!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); }
+});
+document.getElementById('viewport').addEventListener('click',e=>{ next(); });
+let hintTimer=setTimeout(()=>{document.getElementById('hint').style.opacity='0';},5000);
+
+/* ===== fit to viewport ===== */
+function fit(){
+  const s=Math.min(window.innerWidth/1280, window.innerHeight/720);
+  stage.style.transform=`scale(${s})`;
+}
+window.addEventListener('resize',fit); fit();
+show(0);
+</script>
+</body>
+</html>

@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>onni — Layer 2: A Curated Marketplace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="fonts-embed.css">
+<style>
+  :root{
+    --cream:#FCFAF5; --paper:#FEFDF9; --wheat:#DFD8C9; --line:#E4DDCE;
+    --ink:#1A1A17; --slate:#6E6A60; --salmon:#FA8A72; --salmon-deep:#F0765C; --ph-txt:#8B8474;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:#FCFAF5; font-family:"Hanken Grotesk",system-ui,sans-serif; color:var(--ink); min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;}
+  .frame{width:1280px; height:720px; background:var(--cream); box-shadow:none; overflow:hidden; transform-origin:center center; display:flex; flex-direction:column; padding:30px 48px 18px; position:relative; cursor:pointer;}
+
+  .layertag{font-family:"JetBrains Mono",monospace; font-size:11px; font-weight:500; color:#F0765C; letter-spacing:.16em; text-transform:uppercase; z-index:6; position:relative;}
+  h1{font-size:29px; font-weight:700; line-height:1.03; letter-spacing:-.02em; margin-top:6px; z-index:6; position:relative;}
+  h1 .dot{color:var(--salmon);}
+
+  .stage{flex:1; position:relative; margin-top:10px; min-height:0;}
+
+  /* Left column — tall steps panel */
+  .side{position:absolute; left:0; top:0; bottom:0; width:412px; display:flex; flex-direction:column; z-index:6;}
+  .phead{font-family:"JetBrains Mono",monospace; font-size:13px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--slate); margin-bottom:6px;}
+  .panel{flex:1 1 auto; display:flex; flex-direction:column; justify-content:space-between; position:relative; padding:14px 0 6px;}
+  .tline{position:absolute; left:23px; top:34px; bottom:34px; width:2px; background:var(--line); z-index:0;}
+  .titem{display:flex; gap:20px; position:relative; z-index:1;}
+  .tdot{width:46px; height:46px; border-radius:50%; background:#EDE7DA; flex:0 0 auto; display:flex; align-items:center; justify-content:center; transition:background .45s; box-shadow:0 0 0 5px var(--cream); font-family:"JetBrains Mono",monospace; font-size:19px; font-weight:700; color:var(--slate);}
+  .titem.on .tdot{background:var(--salmon-deep); color:#fff;}
+  .tbody{flex:1 1 auto; padding-top:3px;}
+  .tlab{font-size:29px; font-weight:800; letter-spacing:-.02em; line-height:1;}
+  .told{font-size:17px; color:var(--slate); margin-top:8px; line-height:1.3;}
+  .tnew{font-size:18px; font-weight:800; color:var(--salmon-deep); margin-top:7px; height:24px; opacity:0; overflow:hidden; transition:opacity .4s ease;}
+  .titem.on .tnew{opacity:1;}
+
+  /* Right — the pile of tabs */
+  .layer{position:absolute; inset:0;}
+  .layer#buyLayer{z-index:2;}
+  .layer#cancelLayer{z-index:50;}
+
+  .bpile{position:absolute; width:540px; height:350px; transform-origin:center center; transition:transform .55s cubic-bezier(.4,0,.2,1);}
+  .page{position:absolute; width:520px; height:322px; background:#fff; border:1px solid #E3DCCC; border-radius:14px; overflow:hidden;
+        box-shadow:0 14px 32px rgba(60,50,35,.18); opacity:0; transform:translateY(40px) scale(.95);
+        transition:opacity .45s cubic-bezier(.4,0,.2,1), transform .5s cubic-bezier(.4,0,.2,1);}
+  .page.on{opacity:1;}
+  .page .bar{height:32px; background:#F0EADD; border-bottom:1px solid #E3DCCC; display:flex; align-items:center; gap:7px; padding:0 13px;}
+  .page .d{width:9px; height:9px; border-radius:50%; background:#D6CFBE; flex-shrink:0;}
+  .page .url{font-family:"JetBrains Mono",monospace; font-size:11px; color:var(--ph-txt); background:#fff; border:1px solid #E9E3D5; border-radius:7px; padding:3px 12px; margin-left:6px; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .page.cx .bar{background:#F7E7E1; border-color:#EBCBC0;}
+  .page.mk .bar{background:#EDEAE4; border-color:#E0DCD4;}
+  .shot{width:100%; height:calc(100% - 32px); object-fit:cover; object-position:top center; display:block; background:#fff;}
+
+  /* Cabinet photo — drops on top of the pile at the taking step */
+  .cabover{position:absolute; left:498px; bottom:112px; width:560px; background:#fff; border:1px solid #E3DCCC; border-radius:15px; padding:9px; z-index:30;
+    box-shadow:0 26px 54px rgba(60,50,35,.34); opacity:0; transform:rotate(-3deg) translateY(-30px) scale(.95);
+    transition:opacity .5s ease, transform .55s cubic-bezier(.34,1.4,.5,1);}
+  .cabover.on{opacity:1; transform:rotate(-3deg) translateY(0) scale(1);}
+  .cabover img{width:100%; height:322px; object-fit:cover; border-radius:8px; display:block;}
+  .cabover .ccap{padding:11px 6px 3px; text-align:center; font-size:16px; color:var(--slate); font-weight:600;}
+  .cabover .ccap b{color:var(--salmon-deep); font-weight:800;}
+
+  .counter{position:absolute; top:-2px; left:788px; font-family:"JetBrains Mono",monospace; font-size:38px; font-weight:700; color:var(--salmon-deep); line-height:1; opacity:0; transform:translateX(-50%) translateY(-6px) scale(.7); transition:opacity .4s ease, transform .4s cubic-bezier(.34,1.56,.64,1); z-index:200;}
+  .counter .cx{font-size:22px; color:var(--slate); vertical-align:middle; margin-right:2px;}
+  .counter.on{opacity:1; transform:translateX(-50%) translateY(0) scale(1);}
+
+  .foot{display:flex; align-items:center; gap:12px; margin-top:auto; padding-top:6px; z-index:6; position:relative;}
+  .dots{display:flex; gap:5px;} .dots i{width:7px; height:7px; border-radius:50%; background:var(--wheat); transition:background .3s;} .dots i.on{background:var(--salmon-deep);}
+  .hint{font-family:"JetBrains Mono",monospace; font-size:11px; color:var(--slate); transition:opacity .3s;} .hint.hide{opacity:0;}
+</style>
+</head>
+<body>
+  <div class="frame" id="frame"><div style="position:absolute;right:48px;bottom:16px;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#A9A69B;z-index:90">onni · Confidential · 08</div>
+    <div style="margin:0 0 12px;position:relative;z-index:8"><svg width="62" viewBox="0 0 346 142" fill="none" style="display:block"><g stroke="#1A1A17" stroke-width="8" stroke-linecap="round" fill="none"><circle cx="51" cy="85" r="47"/><path d="M135 132 L135 72.5 A34.5 34.5 0 0 1 204 72.5 L204 132"/><path d="M236 132 L236 72.5 A34.5 34.5 0 0 1 305 72.5 L305 132"/><path d="M338 132 L338 38"/></g><circle cx="338" cy="18" r="7" fill="#FA8A72"/></svg></div><div class="layertag">The experience today · a curated marketplace</div>
+    <h1>A marketplace does some of the work<span class="dot">.</span></h1>
+
+    <div class="stage">
+      <div class="side">
+        <div class="phead">Fewer stops — still by hand</div>
+        <div class="panel">
+          <div class="tline"></div>
+          <div class="titem" id="ti1">
+            <div class="tdot">1</div>
+            <div class="tbody"><div class="tlab">Buying</div><div class="told">One marketplace + one brand</div><div class="tnew">two logins, not five</div></div>
+          </div>
+          <div class="titem" id="ti2">
+            <div class="tdot">2</div>
+            <div class="tbody"><div class="tlab">Taking</div><div class="told">Every day, on your own</div><div class="tnew">forget for weeks → overstock</div></div>
+          </div>
+          <div class="titem" id="ti3">
+            <div class="tdot">3</div>
+            <div class="tbody"><div class="tlab">Cancelling</div><div class="told">Log in · cancel · repeat</div><div class="tnew">two subscriptions, by hand</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="layer" id="buyLayer"></div>
+      <div class="cabover" id="cabover">
+        <img src="experience_ladder_assets/messy_cabinet.jpg" alt="Overstocked cabinet">
+        <div class="ccap"><b>Take → Forget → Overstock</b> — the shelf overflows</div>
+      </div>
+      <div class="layer" id="cancelLayer"></div>
+      <div class="counter" id="counter"><span class="cx">&times;</span>2</div>
+    </div>
+
+    <div class="foot">
+      <div class="dots" id="dots"></div>
+      <div class="hint" id="hint">click or &rarr; to advance</div>
+    </div>
+  </div>
+
+<script>
+  const g = id => document.getElementById(id);
+  const frame=g('frame'), buyLayer=g('buyLayer'), cancelLayer=g('cancelLayer'),
+        counter=g('counter'), cabover=g('cabover');
+
+  const SHOTS = 'experience_ladder_assets/channel_screenshots/';
+  const META = { gruns:{n:'Grüns', d:'gruns.co'}, superpower:{n:'Superpower', d:'superpower.com'} };
+  const IX = 11, IY = 13;
+  const BASE_L = 508, BASE_B = 56;
+  const buyTwist    = [0, -5];
+  const cancelTwist = [0, 6];
+
+  const buyPiles = [
+    { brand:'gruns', cards:[
+      {url:'/account/login', img:'L1_login_gruns.png',    reveal:1, cx:false},
+      {url:'/products',      img:'L1_select_gruns.png',   reveal:2, cx:false},
+      {url:'/checkout',      img:'L1_checkout_gruns.png', reveal:3, cx:false},
+    ]},
+    { brand:'superpower', cards:[
+      {url:'/login',        img:'L2_login_superpower.png',       reveal:4, cx:false},
+      {url:'/most-ordered', img:'L2_marketplace_superpower.png', reveal:5, mk:true},
+      {url:'/checkout',     img:'L2_checkout_superpower.png',    reveal:6, cx:false},
+    ]},
+  ];
+  const cancelPiles = [
+    { brand:'gruns', cards:[
+      {url:'/account/login',                img:'L1_login_gruns.png',  reveal:8, cx:true},
+      {url:'/account/subscriptions/cancel', img:'L2_cancel_gruns.png', reveal:8, cx:true},
+    ]},
+    { brand:'superpower', cards:[
+      {url:'/login',                        img:'L2_login_superpower.png',  reveal:9, cx:true},
+      {url:'/account/subscriptions/cancel', img:'L2_cancel_superpower.png', reveal:9, cx:true},
+    ]},
+  ];
+
+  function makeCard(brandKey, c, ki){
+    const b = META[brandKey];
+    const el = document.createElement('div');
+    el.className = 'page' + (c.cx ? ' cx' : '') + (c.mk ? ' mk' : '');
+    el.style.left = (ki*IX) + 'px'; el.style.bottom = (ki*IY) + 'px'; el.style.zIndex = ki;
+    el.style.transitionDelay = (ki*0.05) + 's';
+    el.dataset.reveal = c.reveal;
+    el.innerHTML = '<div class="bar"><span class="d"></span><span class="d"></span><span class="d"></span>'
+      + '<span class="url">' + b.d + c.url + '</span></div>'
+      + '<img class="shot" src="' + SHOTS + c.img + '" alt="">';
+    return el;
+  }
+
+  const piles = [];
+  function build(defs, phase){
+    defs.forEach((pd, bi) => {
+      const pile = document.createElement('div'); pile.className = 'bpile';
+      const cards = pd.cards.map((c, ki) => { const el = makeCard(pd.brand, c, ki); pile.appendChild(el); return el; });
+      (phase==='buy' ? buyLayer : cancelLayer).appendChild(pile);
+      piles.push({pile, phase, bi, cards});
+    });
+  }
+  build(buyPiles, 'buy');
+  build(cancelPiles, 'cancel');
+
+  function placePile(o){
+    const left = BASE_L + o.bi*16;
+    const bottom = BASE_B + o.bi*18;
+    const rot = (o.phase==='buy' ? buyTwist : cancelTwist)[o.bi];
+    o.pile.style.left = left + 'px';
+    o.pile.style.bottom = bottom + 'px';
+    o.pile.style.transform = 'rotate(' + rot + 'deg)';
+    o.pile.style.zIndex = (o.phase==='cancel' ? 100 : 0) + o.bi;
+  }
+
+  const NSTEPS = 9;
+  const dotsWrap = g('dots');
+  const dots = Array.from({length:NSTEPS}).map(()=>{ const i=document.createElement('i'); dotsWrap.appendChild(i); return i; });
+
+  let p = 0;
+  function reveal(el){ if(+el.dataset.reveal <= p){ el.classList.add('on'); el.style.transform='none'; } else { el.classList.remove('on'); el.style.transform='translateY(40px) scale(.95)'; } }
+  function render(){
+    piles.forEach(o => { placePile(o); o.cards.forEach(reveal); });
+    cabover.classList.toggle('on', p >= 7);
+    counter.classList.toggle('on', p >= 6);   // ×2 — two logins, not five
+    g('ti1').classList.toggle('on', p >= 1);
+    g('ti2').classList.toggle('on', p >= 7);
+    g('ti3').classList.toggle('on', p >= 8);
+    dots.forEach((d,i)=> d.classList.toggle('on', i<p));
+    g('hint').classList.toggle('hide', p>0);
+  }
+  function next(){ if(p<NSTEPS){ p++; render(); } else if(parent&&parent.__deckNext){ parent.__deckNext(); } }
+  function prev(){ if(p>0){ p--; render(); } else if(parent&&parent.__deckPrev){ parent.__deckPrev(); } }
+
+  frame.addEventListener('click', next);
+  document.addEventListener('keydown', e=>{
+    if(e.key==='ArrowRight'||e.key===' '||e.key==='Enter'){ e.preventDefault(); next(); }
+    else if(e.key==='ArrowLeft'||e.key==='Backspace'){ e.preventDefault(); prev(); }
+  });
+  function fit(){ const s=Math.min(window.innerWidth/1280, window.innerHeight/720); frame.style.transform='scale('+s+')'; }
+  window.addEventListener('resize', fit); fit();
+  window.__goto = n => { p = n; render(); }; window.__max = NSTEPS; window.__next = function(){ if(p<NSTEPS){ p++; render(); return true; } return false; }; window.__prev = function(){ if(p>0){ p--; render(); return true; } return false; };
+  render();
+</script>
+</body>
+</html>

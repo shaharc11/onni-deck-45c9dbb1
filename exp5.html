@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>onni — Layer 4: Agent + Device</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="fonts-embed.css">
+<style>
+  :root{
+    --cream:#FCFAF5; --paper:#FEFDF9; --wheat:#DFD8C9; --line:#E4DDCE;
+    --ink:#1A1A17; --slate:#6E6A60; --salmon:#FA8A72; --salmon-deep:#F0765C;
+    --wa-bg:#0B141A; --wa-header:#1F2C34; --wa-header-btn:#2A3942;
+    --wa-bubble-in:#1F2C34; --wa-bubble-out:#005C4B; --wa-divider:#182229;
+    --wa-input:#2A3942; --wa-text:#E9EDEF; --wa-text-dim:#8696A0;
+    --wa-time:rgba(233,237,239,.5); --wa-tick:#53BDEB; --wa-enc:#FFD279; --wa-mic:#00A884;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:#FCFAF5; font-family:"Hanken Grotesk",system-ui,sans-serif; color:var(--ink); min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;}
+  .frame{width:1280px; height:720px; background:var(--cream); box-shadow:none; overflow:hidden; transform-origin:center center; padding:34px 48px; position:relative; cursor:pointer;}
+
+  .layertag{font-family:"JetBrains Mono",monospace; font-size:11px; font-weight:500; color:#F0765C; letter-spacing:.16em; text-transform:uppercase;}
+  h1{font-size:32px; font-weight:700; line-height:1.05; letter-spacing:-.02em; margin-top:7px; max-width:760px;}
+  h1 .dot{color:var(--salmon);}
+
+  /* Left panel — matches Layers 1 & 2 */
+  .panel{position:absolute; left:48px; top:148px; bottom:56px; width:452px; display:flex; flex-direction:column;}
+  .phead{font-family:"JetBrains Mono",monospace; font-size:13px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--slate); margin-bottom:4px;}
+  .steps{flex:1 1 auto; display:flex; flex-direction:column; justify-content:space-between; position:relative; padding:12px 0 4px;}
+  .tline{position:absolute; left:23px; top:34px; bottom:34px; width:2px; background:var(--line); z-index:0;}
+  .titem{display:flex; gap:20px; position:relative; z-index:1;}
+  .tdot{width:46px; height:46px; border-radius:50%; background:#EDE7DA; flex:0 0 auto; display:flex; align-items:center; justify-content:center; transition:background .45s; box-shadow:0 0 0 5px var(--cream); font-family:"JetBrains Mono",monospace; font-size:19px; font-weight:700; color:var(--slate);}
+  .titem.on .tdot{background:var(--salmon-deep); color:#fff;}
+  .tbody{flex:1 1 auto; padding-top:3px;}
+  .tlab{font-size:28px; font-weight:800; letter-spacing:-.02em; line-height:1;}
+  .told{font-size:16.5px; color:var(--slate); margin-top:7px; line-height:1.3;}
+  .tnew{font-size:18px; font-weight:800; color:var(--salmon-deep); margin-top:6px; height:24px; opacity:0; overflow:hidden; transition:opacity .4s ease;}
+  .titem.on .tnew{opacity:1;}
+
+  .endpoint{display:flex; align-items:center; gap:16px; margin-top:14px; opacity:0; transform:translateY(6px); transition:all .5s ease;}
+  .endpoint.on{opacity:1; transform:none;}
+  .endpoint .big{font-family:"JetBrains Mono",monospace; font-size:64px; font-weight:700; line-height:.75; color:var(--salmon-deep); letter-spacing:-.04em;}
+  .endpoint .etx{font-size:17px; font-weight:800; line-height:1.2;}
+  .endpoint .etx span{display:block; font-size:14px; font-weight:600; color:var(--slate); margin-top:2px;}
+
+  .dots{position:absolute; left:50%; transform:translateX(-50%); bottom:16px; display:flex; gap:5px;}
+  .dots i{width:7px; height:7px; border-radius:50%; background:var(--wheat); transition:background .3s;} .dots i.on{background:var(--salmon-deep);}
+
+  /* Cabinet → device transformation (the physical payoff) */
+  .morph{position:absolute; left:516px; top:50%; transform:translateY(-50%); width:276px; height:432px; z-index:5;}
+  .mcard{position:absolute; left:50%; top:50%; background:#fff; border:1px solid var(--line); border-radius:14px; padding:9px;
+    box-shadow:0 24px 52px rgba(60,50,35,.34); opacity:0; transform:translate(-50%,-50%) rotate(-3deg) scale(.9);
+    transition:opacity .6s ease, transform .6s cubic-bezier(.34,1.4,.5,1);}
+  .mcard.on{opacity:1; transform:translate(-50%,-50%) rotate(-3deg) scale(1);}
+  .mcard img{display:block; border-radius:8px; object-fit:cover;}
+  .mcard.cab{width:264px;} .mcard.cab img{width:100%; height:176px;}
+  .mcard.dev{width:236px;} .mcard.dev img{width:100%; height:354px;}
+  .mcard .cap{padding:10px 4px 2px; text-align:center; font-size:15px; font-weight:800;}
+  .mcard.cab .cap{color:var(--slate);}
+  .mcard.dev .cap{color:var(--salmon-deep);}
+
+  /* Phone — right, large, realistic device */
+  #scaler{position:absolute; right:120px; top:50%; transform-origin:right center;}
+  .device{position:relative; width:410px; height:838px; border-radius:60px; padding:13px;
+    background:linear-gradient(135deg,#4a4d53 0%,#202225 16%,#141518 50%,#1a1c1f 78%,#3a3d43 100%);
+    box-shadow:0 34px 70px rgba(0,0,0,.42), 0 10px 26px rgba(0,0,0,.30),
+      inset 0 0 0 2px rgba(255,255,255,.10), inset 0 1px 1px rgba(255,255,255,.18), inset 0 -2px 3px rgba(0,0,0,.5);}
+  .device::after{content:""; position:absolute; inset:9px; border-radius:52px; box-shadow:inset 0 0 0 2px #050506; pointer-events:none; z-index:4;}
+  .btn{position:absolute; background:linear-gradient(90deg,#2b2d31,#43464c); border-radius:3px; box-shadow:inset 0 1px 1px rgba(255,255,255,.15);}
+  .b-action{left:-3px; top:158px; width:4px; height:30px; border-radius:3px 0 0 3px;}
+  .b-volup{left:-3px; top:212px; width:4px; height:56px; border-radius:3px 0 0 3px;}
+  .b-voldn{left:-3px; top:280px; width:4px; height:56px; border-radius:3px 0 0 3px;}
+  .b-power{right:-3px; top:236px; width:4px; height:100px; border-radius:0 3px 3px 0;}
+  .island{position:absolute; top:27px; left:50%; transform:translateX(-50%); width:116px; height:33px; background:#000; border-radius:20px; z-index:6;
+    box-shadow:inset 0 0 2px 1px rgba(255,255,255,.05);}
+  .island::after{content:""; position:absolute; right:15px; top:50%; transform:translateY(-50%); width:11px; height:11px; border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #2b3a4a, #05070a 70%); box-shadow:0 0 0 1px rgba(255,255,255,.04);}
+  .phone{width:100%; height:100%; background:var(--wa-bg); border-radius:48px; overflow:hidden;
+    display:flex; flex-direction:column; color:var(--wa-text);
+    font-family:"Plus Jakarta Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
+  .statusbar{height:46px; flex:0 0 auto; background:var(--wa-header); display:flex; align-items:flex-end; justify-content:space-between; padding:0 24px 6px; font-size:14px; font-weight:600;}
+  .statusbar .left,.statusbar .right{display:flex; align-items:center; gap:6px;}
+  .battery{display:flex; align-items:center; gap:3px;} .battery .pct{font-size:11px; font-weight:600;}
+  .header{flex:0 0 auto; background:var(--wa-header); display:flex; align-items:center; gap:6px; padding:5px 12px 11px;}
+  .back{display:flex; align-items:center; gap:3px; color:var(--wa-text); background:var(--wa-header-btn); border-radius:999px; padding:6px 12px 6px 8px; font-size:15px; font-weight:600;}
+  .avatar{width:40px; height:40px; border-radius:50%; background:#fff; flex:0 0 auto; display:flex; align-items:center; justify-content:center; margin-left:2px;}
+  .avatar .dot{width:60%; height:60%; border-radius:50%; background:var(--salmon);}
+  .peer{flex:1 1 auto; min-width:0; margin-left:5px;}
+  .peer .name{font-size:16.5px; font-weight:600; line-height:1.15;}
+  .peer .status{font-size:12.5px; color:var(--wa-text-dim); margin-top:1px;}
+  .thread{flex:1 1 auto; overflow-y:auto; padding:14px 10px 8px; display:flex; flex-direction:column; gap:4px;
+    background-image:radial-gradient(rgba(255,255,255,.02) 1px, transparent 1px); background-size:22px 22px;}
+  .thread::-webkit-scrollbar{width:0;}
+  .day-pill,.enc-pill{align-self:center; background:var(--wa-divider); color:var(--wa-text-dim); border-radius:8px; font-size:12px; padding:5px 12px; margin:5px 0;}
+  .day-pill{font-weight:600; color:#CFD9DF;}
+  .enc-pill{max-width:90%; text-align:center; line-height:1.4; color:var(--wa-enc); font-size:11.5px;}
+  .row{display:flex; margin-top:5px;}
+  .row.in{justify-content:flex-start;} .row.out{justify-content:flex-end;} .row.tight{margin-top:2px;}
+  .bubble{max-width:80%; padding:7px 10px 8px; border-radius:10px; font-size:15.5px; line-height:1.37; position:relative; box-shadow:0 1px .5px rgba(0,0,0,.18);}
+  .row.in .bubble{background:var(--wa-bubble-in); border-top-left-radius:2px;}
+  .row.out .bubble{background:var(--wa-bubble-out); border-top-right-radius:2px;}
+  .bubble.img{padding:3px; width:200px; max-width:82%;}
+  .bubble.img img{width:100%; display:block; border-radius:8px; object-fit:cover; aspect-ratio:3/4; background:#0f1a20;}
+  .bubble.img .cap{padding:6px 6px 4px; font-size:15.5px; line-height:1.37;}
+  .meta{float:right; margin:6px 0 -2px 9px; display:inline-flex; align-items:center; gap:3px; font-size:11px; color:var(--wa-time);}
+  .meta .tick{color:var(--wa-tick);}
+  .composer{flex:0 0 auto; padding:9px 11px 14px; display:flex; align-items:center; gap:9px; background:var(--wa-bg);}
+  .field{flex:1 1 auto; background:var(--wa-input); border-radius:999px; height:44px; display:flex; align-items:center; padding:0 14px; color:var(--wa-text-dim); font-size:15px;}
+  .mic{width:44px; height:44px; flex:0 0 auto; background:var(--wa-mic); border-radius:50%; display:flex; align-items:center; justify-content:center; color:#0B141A;}
+  @keyframes enterMsg{from{opacity:0; transform:translateY(16px) scale(.96);} to{opacity:1; transform:none;}}
+  .row.enter{animation:enterMsg .4s cubic-bezier(.34,1.3,.5,1) both;}
+</style>
+</head>
+<body>
+  <div class="frame" id="frame"><div style="position:absolute;right:48px;bottom:16px;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#A9A69B;z-index:90">onni · Confidential · 10</div>
+    <div style="margin:0 0 12px;position:relative;z-index:8"><svg width="62" viewBox="0 0 346 142" fill="none" style="display:block"><g stroke="#1A1A17" stroke-width="8" stroke-linecap="round" fill="none"><circle cx="51" cy="85" r="47"/><path d="M135 132 L135 72.5 A34.5 34.5 0 0 1 204 72.5 L204 132"/><path d="M236 132 L236 72.5 A34.5 34.5 0 0 1 305 72.5 L305 132"/><path d="M338 132 L338 38"/></g><circle cx="338" cy="18" r="7" fill="#FA8A72"/></svg></div><div class="layertag">The experience with onni · agent + device</div>
+    <h1>The shelf becomes one beautiful device<span class="dot">.</span></h1>
+
+    <div class="panel">
+      <div class="phead">What onni replaces</div>
+      <div class="steps">
+        <div class="tline"></div>
+        <div class="titem" id="ti1">
+          <div class="tdot">1</div>
+          <div class="tbody"><div class="tlab">Buying</div><div class="told">Five logins · a marketplace · a brand</div><div class="tnew">&rarr; one message</div></div>
+        </div>
+        <div class="titem" id="ti2">
+          <div class="tdot">2</div>
+          <div class="tbody"><div class="tlab">Remembering</div><div class="told">Take · forget · overstock</div><div class="tnew">&rarr; a nudge that knows your day</div></div>
+        </div>
+        <div class="titem" id="ti3">
+          <div class="tdot">3</div>
+          <div class="tbody"><div class="tlab">Cancelling</div><div class="told">Log in · cancel page · five times</div><div class="tnew">&rarr; just send a photo</div></div>
+        </div>
+      </div>
+      <div class="endpoint" id="endpoint"><span class="big">1</span><div class="etx">beautiful device<span>the whole shelf, replaced</span></div></div>
+    </div>
+
+    <div class="morph" id="morph">
+      <div class="mcard cab" id="mcab">
+        <img src="experience_ladder_assets/messy_cabinet.jpg" alt="Overstocked cabinet">
+        <div class="cap">An overflowing shelf</div>
+      </div>
+      <div class="mcard dev" id="mdev">
+        <img src="experience_ladder_assets/L4_device.png" alt="onni device">
+        <div class="cap">&rarr; one beautiful device</div>
+      </div>
+    </div>
+
+    <div class="dots" id="dots"></div>
+
+    <div id="scaler"><div class="device">
+      <span class="btn b-action"></span><span class="btn b-volup"></span><span class="btn b-voldn"></span><span class="btn b-power"></span>
+      <div class="phone" id="phone"></div>
+      <div class="island"></div>
+    </div></div>
+  </div>
+
+<script>
+  const g = id => document.getElementById(id);
+  const frame=g('frame'), phone=g('phone'), scaler=g('scaler');
+
+  const ICONS = {
+    bell:`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21a2 2 0 0 0 4 0"/><line x1="3" y1="3" x2="21" y2="21"/></svg>`,
+    signal:`<svg width="17" height="11" viewBox="0 0 18 12" fill="currentColor"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2.5" width="3" height="9.5" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg>`,
+    wifi:`<svg width="17" height="12" viewBox="0 0 18 13" fill="currentColor"><path d="M9 12.2l2.1-2.6a3 3 0 0 0-4.2 0L9 12.2z"/><path d="M9 6.6a7 7 0 0 1 5 2.1l1.6-2A9.6 9.6 0 0 0 9 3.9 9.6 9.6 0 0 0 2.4 6.7l1.6 2A7 7 0 0 1 9 6.6z" opacity=".9"/><path d="M9 1.2A12.4 12.4 0 0 0 .3 4.7l1.6 2A9.8 9.8 0 0 1 9 3.9a9.8 9.8 0 0 1 7.1 2.8l1.6-2A12.4 12.4 0 0 0 9 1.2z" opacity=".9"/></svg>`,
+    battery:`<div class="battery"><span class="pct">69</span><svg width="25" height="12" viewBox="0 0 26 13" fill="none"><rect x="1" y="1" width="22" height="11" rx="3" stroke="currentColor" opacity=".5"/><rect x="3" y="3" width="13.5" height="7" rx="1.5" fill="currentColor"/><rect x="24" y="4.5" width="1.6" height="4" rx=".8" fill="currentColor" opacity=".5"/></svg></div>`,
+    back:`<svg width="11" height="18" viewBox="0 0 12 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2 2 10l8 8"/></svg>`,
+    lock:`<svg width="11" height="13" viewBox="0 0 12 15" fill="currentColor"><path d="M6 0a3.2 3.2 0 0 0-3.2 3.2V5H2A2 2 0 0 0 0 7v6a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H9.2V3.2A3.2 3.2 0 0 0 6 0zm0 1.6a1.6 1.6 0 0 1 1.6 1.6V5H4.4V3.2A1.6 1.6 0 0 1 6 1.6z"/></svg>`,
+    sticker:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 3H9a2 2 0 0 0-2 2v9l4-2 4 2V5a2 2 0 0 0-2-2z"/><path d="M7 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h9"/></svg>`,
+    cam:`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.2"/></svg>`,
+    mic:`<svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M6 11a6 6 0 0 0 12 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
+    plus:`<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`,
+    ticks:`<svg class="tick" width="16" height="11" viewBox="0 0 18 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 6.5 4.5 10 11 2.5"/><path d="M7 9.5 8 10.5 15 2.5"/></svg>`
+  };
+
+  const MAG = 'experience_ladder_assets/L3_bottle.jpg';
+
+  const MESSAGES = [
+    {side:'in',  time:'08:12', text:`Morning, Shahar 👋 Heads-up from your order history — you're down to about 4 days of magnesium. Want me to reorder your <b>Pure Encapsulations Magnesium Glycinate</b>?`},
+    {side:'out', time:'08:13', text:`Yes, please order`},
+    {side:'in',  time:'08:13', text:`Done ✅ Your order is in process. You'll receive your magnesium in <b>two business days</b> — with a <b>20% discount</b> applied.`},
+    {side:'in',  time:'21:02', text:`Good evening, Shahar 🌙 After this morning's intense <b>40-min Peloton</b>, take your <b>magnesium before bed</b> tonight — it'll aid muscle recovery and deepen your sleep.`},
+    {side:'out', time:'21:03', text:`Perfect, thanks 🙏`},
+    {side:'out', time:'21:34', image:MAG, alt:'Magnesium', text:`cancel this product subscription`},
+    {side:'in',  time:'21:34', text:`Got it 👍 That's your <b>Pure Encapsulations Magnesium (glycinate)</b>, 90 caps — on a monthly refill. Go ahead and cancel it?`},
+    {side:'out', time:'21:35', text:`Yes, cancel it`},
+    {side:'in',  time:'21:35', text:`All set ✅ Your Magnesium subscription is cancelled — no future charges. Your current bottle lasts about <b>3 more weeks</b>. Restart anytime, just tell me.`},
+  ];
+
+  function bubble(m, prev, isLast){
+    const tick = m.side==='out' ? ICONS.ticks : '';
+    const tight = prev && prev.side===m.side ? ' tight' : '';
+    const enter = isLast ? ' enter' : '';
+    if(m.image){
+      const cap = m.text ? `<div class="cap">${m.text}<span class="meta">${m.time}${tick}</span></div>` : '';
+      return `<div class="row ${m.side}${tight}${enter}"><div class="bubble img"><img src="${m.image}" alt="${m.alt||''}">${cap}</div></div>`;
+    }
+    return `<div class="row ${m.side}${tight}${enter}"><div class="bubble">${m.text}<span class="meta">${m.time}${tick}</span></div></div>`;
+  }
+
+  const dotsWrap = g('dots');
+  const CUTS=[1,2,3,4,5,6,8,9]; const MCOUNT=()=>CUTS[p-1]||0; let lastShown=0;
+  const dots = CUTS.map(()=>{ const i=document.createElement('i'); dotsWrap.appendChild(i); return i; });
+
+  let p = 0;
+  function renderThread(){
+    const shown = MESSAGES.slice(0, MCOUNT());
+    const inner = `<div class="thread" id="thread">
+      <div class="day-pill">Today</div>
+      <div class="enc-pill">${ICONS.lock} Messages are end-to-end encrypted</div>
+      ${shown.map((m,i)=>bubble(m, shown[i-1], i>=lastShown)).join('')}
+    </div>`;
+    phone.innerHTML = `
+      <div class="statusbar"><div class="left"><span>20:57</span>${ICONS.bell}</div><div class="right">${ICONS.signal}${ICONS.wifi}${ICONS.battery}</div></div>
+      <div class="header"><a class="back">${ICONS.back}<span>178</span></a><div class="avatar"><div class="dot"></div></div><div class="peer"><div class="name">onni</div><div class="status">online</div></div></div>
+      ${inner}
+      <div class="composer">${ICONS.plus}<div class="field"><span style="flex:1">&nbsp;</span>${ICONS.sticker}</div>${ICONS.cam}<div class="mic">${ICONS.mic}</div></div>`;
+    const th = g('thread'); if(th) th.scrollTop = th.scrollHeight;
+  }
+  function render(){
+    renderThread();
+    const c = MCOUNT();
+    g('ti1').classList.toggle('on', c>=3);
+    g('ti2').classList.toggle('on', c>=5);
+    g('mcab').classList.toggle('on', c>=4 && c<8);
+    g('mdev').classList.toggle('on', c>=8);
+    g('ti3').classList.toggle('on', c>=9);
+    g('endpoint').classList.toggle('on', c>=9);
+    dots.forEach((d,i)=> d.classList.toggle('on', i<p));
+    lastShown = c;
+  }
+  function next(){ if(p<CUTS.length){ p++; render(); } else if(parent&&parent.__deckNext){ parent.__deckNext(); } }
+  function prev(){ if(p>0){ p--; render(); } else if(parent&&parent.__deckPrev){ parent.__deckPrev(); } }
+
+  frame.addEventListener('click', next);
+  document.addEventListener('keydown', e=>{
+    if(e.key==='ArrowRight'||e.key===' '||e.key==='Enter'){ e.preventDefault(); next(); }
+    else if(e.key==='ArrowLeft'||e.key==='Backspace'){ e.preventDefault(); prev(); }
+  });
+  function fit(){
+    const s=Math.min(window.innerWidth/1280, window.innerHeight/720); frame.style.transform='scale('+s+')';
+    const sc=Math.min(1.0,(720-40)/838);
+    scaler.style.transform='translateY(-50%) scale('+sc+')';
+  }
+  window.addEventListener('resize', fit);
+  window.__goto = n => { p = n; render(); }; window.__max = CUTS.length; window.__next = function(){ if(p<CUTS.length){ p++; render(); return true; } return false; }; window.__prev = function(){ if(p>0){ p--; render(); return true; } return false; };
+  render(); fit();
+</script>
+</body>
+</html>
